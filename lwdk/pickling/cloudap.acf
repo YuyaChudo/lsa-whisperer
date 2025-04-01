@@ -1,0 +1,26 @@
+// Copyright (C) 2024 Evan McBroom
+//
+
+[
+    explicit_handle
+]
+interface aadcredentialbag
+{
+typedef [encode, decode] AadCredentialBag;
+}
+
+[
+    explicit_handle
+]
+interface cloudapcachetypes
+{
+typedef [encode, decode] CloudAPCache;
+}
+
+[
+    explicit_handle
+]
+interface livesspcachetypes
+{
+typedef [encode, decode] LiveSSPCache;
+}

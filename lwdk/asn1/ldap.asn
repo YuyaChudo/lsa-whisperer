@@ -1,0 +1,356 @@
+-- Copyright (C) 2024 Evan McBroom
+--
+-- This document defines types as they exist in the LDAP code for Windows. Microsoft
+-- makes few deviations from the public RFCs so this document is likely very close
+-- to Microsoft's own internal asn1 module specification. The defined types in this
+-- document relate to the following specification:
+--   [MS-ADTS]: Active Directory Technical Specification
+--
+-- MS-ADTS extends the following RFCs. Of these, Microsoft largely conforms to RFC4511
+-- but it does maintain definitions for types from the older RFC2251 specification:
+--   RFC2251 Lightweight Directory Access Protocol (v3)
+--   RFC3672 Subentries in the Lightweight Directory Access Protocol (LDAP)
+--   RFC4511 Lightweight Directory Access Protocol (LDAP): The Protocol
+--   RFC4514 Lightweight Directory Access Protocol (LDAP): String Representation of Distinguished Names
+--   RFC4515 Lightweight Directory Access Protocol (LDAP): String Representation of Search Filters
+--
+-- Microsoft additionally defines error codes from the following RFC draft,
+-- but they do not define the corresponding request and response types that
+-- are needed to fully implement the draft:
+--   draft-ietf-ldapext-ldapv3-vlv-09.txt: LDAP Extensions for Scrolling View Browsing of Search Results
+--
+LDAP DEFINITIONS IMPLICIT TAGS ::= BEGIN
+
+-- Originally named LDAPMessage in the RFC. Microsoft additionally
+-- removed the IntermediateResponse protocol option and does not
+-- define its corresponding type (e.g., IntermediateResponse).
+LDAPMsg ::= SEQUENCE {
+    messageID      MessageID,
+    protocolOp     CHOICE {
+        bindRequest    BindRequest,
+        bindResponse   BindResponse,
+        unbindRequest  UnbindRequest,
+        searchRequest  SearchRequest,
+        searchResEntry SearchResultEntry,
+        searchResDone  SearchResultDone,
+        searchResRef   SearchResultReference,
+        modifyRequest  ModifyRequest,
+        modifyResponse ModifyResponse,
+        addRequest     AddRequest,
+        addResponse    AddResponse,
+        delRequest     DelRequest,
+        delResponse    DelResponse,
+        modDNRequest   ModifyDNRequest,
+        modDNResponse  ModifyDNResponse,
+        compareRequest CompareRequest,
+        compareResponse CompareResponse,
+        abandonRequest AbandonRequest,
+        extendedReq    ExtendedRequest,
+        extendedResp   ExtendedResponse
+    },
+    controls       [0] Controls OPTIONAL
+}
+
+LDAPMessage ::= LDAPMsg -- The RFC name for the type is redefined for convenience
+
+MessageID ::= INTEGER (0..maxInt)
+
+maxInt INTEGER ::= 2147483647 -- (2^^31 - 1)
+
+LDAPString ::= OCTET STRING -- UTF-8 encoded, [ISO10646] characters
+
+LDAPOID ::= OCTET STRING -- Constrained to <numericoid> [RFC4512]
+
+LDAPDN ::= LDAPString -- Constrained to <distinguishedName> [RFC4514]
+
+RelativeLDAPDN ::= LDAPString -- Constrained to <attributedescription> [RFC4512]
+
+AttributeType ::= LDAPString -- Named AttributeDescription in the RFC. Constrained to <attributedescription> [RFC4512]
+
+AttributeDescription ::= LDAPString -- Constrained to <attributedescription> [RFC4512]
+
+AttributeDescriptionList ::= SEQUENCE OF AttributeDescription
+
+AttributeValue ::= OCTET STRING
+
+AttributeValueAssertion ::= SEQUENCE {
+    attributeType  AttributeDescription,
+    assertionValue AssertionValue
+}
+
+AssertionValue ::= OCTET STRING
+
+PartialAttribute ::= SEQUENCE {
+    type           AttributeDescription,
+    vals           SET OF AttributeValue
+}
+
+MatchingRuleId ::= LDAPString
+
+LDAPResult ::= SEQUENCE {
+    resultCode     ENUMERATED {
+                       success                      (0),
+                       operationsError              (1),
+                       protocolError                (2),
+                       timeLimitExceeded            (3),
+                       sizeLimitExceeded            (4),
+                       compareFalse                 (5),
+                       compareTrue                  (6),
+                       authMethodNotSupported       (7),
+                       strongAuthRequired           (8),
+                       referralv2                   (9), -- Added by Microsoft. The source of this error is unknown
+                       referral                     (10),
+                       adminLimitExceeded           (11),
+                       unavailableCriticalExtension (12),
+                       confidentialityRequired      (13),
+                       saslBindInProgress           (14),
+                       -- 14-15 unused --
+                       noSuchAttribute              (16),
+                       undefinedAttributeType       (17),
+                       inappropriateMatching        (18),
+                       constraintViolation          (19),
+                       attributeOrValueExists       (20),
+                       invalidAttributeSyntax       (21),
+                       -- 22-31 unused --
+                       noSuchObject                 (32),
+                       aliasProblem                 (33),
+                       invalidDNSyntax              (34),
+                       -- Microsoft removed isLeaf (35) --
+                       aliasDereferencingProblem    (36),
+                       -- 37-47 unused --
+                       inappropriateAuthentication  (48),
+                       invalidCredentials           (49),
+                       insufficientAccessRights     (50),
+                       busy                         (51),
+                       unavailable                  (52),
+                       unwillingToPerform           (53),
+                       loopDetect                   (54),
+                       -- 55-59 unused --
+                       sortControlMissing           (60), -- From draft-ietf-ldapext-ldapv3-vlv-09.txt
+                       indexRangeError              (61), -- Named offsetRangeError in draft-ietf-ldapext-ldapv3-vlv-09.txt
+                       -- 62-63 unused --
+                       namingViolation              (64),
+                       objectClassViolation         (65),
+                       notAllowedOnNonLeaf          (66),
+                       notAllowedOnRDN              (67),
+                       entryAlreadyExists           (68),
+                       objectClassModsProhibited    (69),
+                       resultsTooLarge              (70), -- Only used by CLDAP
+                       affectsMultipleDSAs          (71),
+                       -- 72-75 unused --
+                       virtualListViewError         (76), -- From draft-ietf-ldapext-ldapv3-vlv-09.txt
+                       -- 77-79 unused --
+                       other (80)
+                   },
+    matchedDN      LDAPDN,
+    errorMessage   LDAPString --(SIZE (0..maxInt))--,
+    referral       [3] Referral OPTIONAL
+}
+
+Referral ::= SEQUENCE --SIZE (1..maxInt)-- OF URI
+
+LDAPURL ::= OCTET STRING
+
+URI ::= LDAPString -- limited to characters permitted in URIs
+
+Controls ::= SEQUENCE OF Control
+
+Control ::= SEQUENCE {
+     controlType   LDAPOID,
+     criticality   BOOLEAN DEFAULT FALSE,
+     controlValue  OCTET STRING OPTIONAL
+}
+
+BindRequest ::= [APPLICATION 0] SEQUENCE {
+    version        INTEGER (1..127),
+    name           LDAPDN,
+    authentication AuthenticationChoice
+}
+
+AuthenticationChoice ::= CHOICE {
+    simple           [0] OCTET STRING,
+    sasl             [3] SaslCredentials,
+    sicilyNegotiate  [9] OCTET STRING,
+    sicilyInitial    [10] OCTET STRING,
+    sicilySubsequent [11] OCTET STRING
+}
+
+SaslCredentials ::= SEQUENCE {
+    mechanism      LDAPString,
+    credentials    OCTET STRING OPTIONAL
+}
+
+-- Microsoft replaced the type's serverSaslCreds member with serverCreds
+BindResponse ::= [APPLICATION 1] SEQUENCE {
+    COMPONENTS OF LDAPResult,
+    serverCreds    [7] AuthenticationChoice
+}
+
+UnbindRequest ::= [APPLICATION 2] NULL
+
+-- Microsoft retyped the attributes member from AttributeSelection
+-- to AttributeDescriptionList. The result of the serialization after
+-- the retyping is effectively the same as it was before
+SearchRequest ::= [APPLICATION 3] SEQUENCE {
+    baseObject     LDAPDN,
+    scope          ENUMERATED {
+                       baseObject   (0),
+                       singleLevel  (1),
+                       wholeSubtree (2)
+                   },
+    derefAliases   ENUMERATED {
+                       neverDerefAliases   (0),
+                       derefInSearching    (1),
+                       derefFindingBaseObj (2),
+                       derefAlways         (3)
+                   },
+    sizeLimit      INTEGER (0..maxInt),
+    timeLimit      INTEGER (0..maxInt),
+    typesOnly      BOOLEAN,
+    filter         Filter,
+    attributes     AttributeDescriptionList
+}
+
+-- Microsoft originally did not include the not filter
+-- in their type definition due to an issue with their
+-- asn1 compipler. The and, or, and not members cause
+-- the type to be recursive which required Microsoft to
+-- annotate these members with a '#pointer' comment for
+-- their asn1 compiler to use a pointer for their type
+-- definitions to break recursion. Their compiler though
+-- only supported that annotation in SEQUENCE and SET OF
+-- types, causing Microsoft to originally exclude the not
+-- member from the definition. Microsoft has since solve
+-- this issue.
+Filter ::= CHOICE {
+    and            [0] SET --#pointer-- OF Filter,
+    or             [1] SET --#pointer-- OF Filter,
+    not            [2]  Filter, 
+    equalityMatch  [3] AttributeValueAssertion,
+    substrings     [4] SubstringFilter,
+    greaterOrEqual [5] AttributeValueAssertion,
+    lessOrEqual    [6] AttributeValueAssertion,
+    present        [7] AttributeType,
+    approxMatch    [8] AttributeValueAssertion,
+    extensibleMatch [9] MatchingRuleAssertion
+}
+
+-- Microsoft retyped the substrings member from sequence of types
+-- to SubstringFilterList. The result of the serialization after
+-- the retyping is effectively the same as it was before
+SubstringFilter ::= SEQUENCE {
+    type           AttributeType,
+    substrings     SubstringFilterList
+}
+
+-- A type Microsoft added for their definition of SubstringFilter
+SubstringFilterList ::= SEQUENCE --SIZE (1..maxInt)-- OF CHOICE {
+    initial        [0] LDAPString,
+    any            [1] LDAPString,
+    final          [2] LDAPString
+}
+
+MatchingRuleAssertion ::= SEQUENCE {
+    matchingRules  [1] SET --SIZE (1..maxInt)-- OF MatchingRuleId,
+    type           [2] AttributeType,
+    matchValue     [3] AssertionValue,
+    dnAttributes   [4] BOOLEAN
+}
+
+SearchResultEntry ::= [APPLICATION 4] SEQUENCE {
+    objectName     LDAPDN,
+    attributes     PartialAttributeList
+}
+
+PartialAttributeList ::= SEQUENCE --SIZE (1..maxInt)-- OF SEQUENCE {
+    type           AttributeType,
+    vals           SET --SIZE (1..maxInt)-- OF AttributeValue
+}
+
+SearchResultReference ::= [APPLICATION 19] SEQUENCE --SIZE (1..maxInt)-- OF URI
+
+SearchResultDone ::= [APPLICATION 5] LDAPResult
+
+-- Microsoft renamed and retyped the changes member to be named
+-- 'modification' and to be of type ModificationList. We match
+-- the type change but choose to keep the member's name as 'changes'
+-- to make more symantic sense. The result of the serialization
+-- after the retyping is effectively the same as it was before
+ModifyRequest ::= [APPLICATION 6] SEQUENCE {
+    object         LDAPDN,
+    changes        ModificationList -- Microsoft's name for this member is 'modification'
+}
+
+-- A type Microsoft added for their definition of ModifyRequest.
+-- They additionally renamed the delete enum member to operation-delete.
+-- That change was likely done because the emitted code from
+-- Microsoft's asn1 compiler before the change may have caused
+-- compilation errors, possibly due to conflicting type names.
+ModificationList ::= SEQUENCE OF SEQUENCE {
+    operation      ENUMERATED {
+                       add              (0),
+                       operation-delete (1),
+                       replace          (2)
+                   },
+    modification   AttributeTypeAndValues
+}
+
+AttributeTypeAndValues ::= SEQUENCE {
+      type         AttributeDescription,
+      vals         SET OF AttributeValue
+}
+
+ModifyResponse ::= [APPLICATION 7] LDAPResult
+
+AddRequest ::= [APPLICATION 8] SEQUENCE {
+    entry          LDAPDN,
+    attributes     AttributeList
+}
+
+-- Microsoft retyped the vals member to AttributeVals. The result
+-- of the serialization after the retyping is effectively the same
+-- as it was before
+AttributeList ::= SEQUENCE --SIZE (1..maxInt)-- OF SEQUENCE {
+    type           AttributeType,
+    vals           AttributeVals
+}
+
+-- A type Microsoft added for their definition of AttributeList.
+AttributeVals ::= SET --SIZE (1..maxInt)-- OF AttributeValue
+
+AddResponse ::= [APPLICATION 9] LDAPResult
+
+DelRequest ::= [APPLICATION 10] LDAPDN
+
+DelResponse ::= [APPLICATION 11] LDAPResult
+
+ModifyDNRequest ::= [APPLICATION 12] SEQUENCE {
+    entry          LDAPDN,
+    newrdn         RelativeLDAPDN,
+    deleteoldrdn   BOOLEAN,
+    newSuperior    [0] LDAPDN OPTIONAL
+}
+
+ModifyDNResponse ::= [APPLICATION 13] LDAPResult
+
+CompareRequest ::= [APPLICATION 14] SEQUENCE {
+    entry          LDAPDN,
+    ava            AttributeValueAssertion
+}
+
+CompareResponse ::= [APPLICATION 15] LDAPResult
+
+AbandonRequest ::= [APPLICATION 16] MessageID
+
+ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+    requestName    [0] LDAPString,
+    requestValue   [1] OCTET STRING
+}
+
+ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+    COMPONENTS OF LDAPResult,
+    responseName   [10] LDAPOID OPTIONAL,
+    response       [11] OCTET STRING OPTIONAL
+}
+
+END

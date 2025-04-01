@@ -1,0 +1,19 @@
+// Copyright (C) 2024 Evan McBroom
+//
+
+[
+    explicit_handle
+]
+interface legacycredkey {
+typedef [encode, decode, allocate(all_nodes)] PMSV1_0_SUPPLEMENTAL_CREDENTIAL_V3;
+}
+
+[
+    explicit_handle
+]
+interface pac {
+typedef [encode, decode, allocate(all_nodes)] PPAC_IDL_VALIDATION_INFO;
+typedef [encode, decode, allocate(all_nodes)] PPAC_IDL_CREDENTIAL_DATA;
+typedef [encode, decode, allocate(all_nodes)] PKERB_TOKEN_RESTRICTIONS;
+typedef [encode, decode, allocate(all_nodes)] PPAC_IDL_S4U_DELEGATION_INFO;
+}

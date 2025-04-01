@@ -19,7 +19,7 @@ Contributions are appreciated!
 
 LSA Whisperer uses [CMake](https://cmake.org/) to generate and run the build system files for your platform.
 The project does not rely on any library manager to allow it to be easily built in an offline environment if desired.
-You will need the latest Windows 11 SDK, which at the time of this writing is 10.0.22621.0.
+You will need the latest Windows 11 SDK and WDK that's available on [GitHub's runner images](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md), which at the time of this writing is 10.0.26100.0.
 
 ```
 git clone --recurse-submodules https://github.com/EvanMcBroom/lsa-whisperer.git
@@ -31,7 +31,12 @@ cmake --build .
 By default CMake will build both the `lsa-whisperer` utility and the `sspi` static library it uses.
 The `lsa-whisperer` utility will be linked against the static version of the runtime library which will allow the tool to run as a standalone program on other hosts.
 
-If [Doxygen](https://www.doxygen.nl/) and the Python modules in the `docs/requirements.txt` file are installed, then CMake will build the documentation for the `sspi` static library as well.
+If the Python modules in the `requirements.txt` file are installed, then CMake will build the bofs that are included with this project.
+If [Doxygen](https://www.doxygen.nl/) is additionally installed, then CMake will also build the documentation for the `sspi` static library as well.
+
+If you experience issues related to Python when generating build files, please ensure that the Python installation that CMake located has the required Python modules installed.
+CMake will report the Python installation it located the first time you attempt to generate build files.
+CMake may locate and use a seperate Python installation than anticipated if have multiple versions of Python are installed.
 
 ## Open Source
 
@@ -39,6 +44,7 @@ Thank you to the following packages that are used in LSA Whisperer directly or i
 
 - Cli
     - [AmokHuginnsson/replxx](https://github.com/AmokHuginnsson/replxx) (license - [Multiple](https://github.com/AmokHuginnsson/replxx/blob/master/LICENSE.md))
+    - [gabime/spdlog](https://github.com/gabime/spdlog) (license - [MIT](https://github.com/gabime/spdlog/blob/v1.x/LICENSE))
     - [jarro2783/cxxopts](https://github.com/jarro2783/cxxopts) (license - [MIT](https://github.com/jarro2783/cxxopts/blob/master/LICENSE))
     - [muellan/clipp](https://github.com/muellan/clipp) (license - [MIT](https://github.com/muellan/clipp/blob/master/LICENSE))
     - [Neargye/magic_enum](https://github.com/Neargye/magic_enum) (license - [MIT](https://github.com/Neargye/magic_enum/blob/master/LICENSE))
@@ -49,6 +55,11 @@ Thank you to the following packages that are used in LSA Whisperer directly or i
     - [doxygen/doxygen](https://github.com/doxygen/doxygen) (license - [GPL 2.0](https://github.com/doxygen/doxygen/blob/master/LICENSE))
     - [readthedocs/sphinx_rtd_theme](https://github.com/readthedocs/sphinx_rtd_theme) (license - [MIT](https://github.com/readthedocs/sphinx_rtd_theme/blob/master/LICENSE))
     - [sphinx-doc/sphinx](https://github.com/sphinx-doc/sphinx) (license - [BSD](https://github.com/sphinx-doc/sphinx/blob/master/LICENSE))
+- Lwdk
+    - [winsiderss/phnt](https://github.com/winsiderss/phnt) (license - [MIT](https://github.com/winsiderss/phnt/blob/master/LICENSE))
+- Modules
+    - [nlohmann/json](https://github.com/nlohmann/json) (license - [MIT](https://raw.githubusercontent.com/nlohmann/json/master/LICENSE.MIT))
+    - [tplgy/cppcodec](https://github.com/tplgy/cppcodec) (license - [MIT](https://github.com/tplgy/cppcodec/blob/master/LICENSE))
 
 Although not used by LSA Whisperer, the following projects greatly helped in its development:
 
@@ -69,7 +80,7 @@ Thank you as well to [Will](https://twitter.com/harmj0y) for always being a good
 
 ## Related Work
 
-- [Adam Chester](https://twitter.com/_xpn_) ([2019](https://blog.xpnsec.com/exploring-mimikatz-part-2/)), showed a POC for SPM's AddPackage API
+- [Adam Chester](https://twitter.com/_xpn_) ([2019](https://blog.xpnsec.com/)), for blogs related to Windows authentication
 - [Alex Short](https://twitter.com/alexsho71327477) ([2023](https://github.com/rbmm/TBAL)), showed POCs for ARSO and TBAL
 - [Mor Rubin](https://twitter.com/rubin_mor) ([2020](https://medium.com/@mor2464/azure-ad-pass-the-certificate-d0c5de624597)), created tools and techniques for NegoEX
 - [Dr. Nestori Syynimaa](https://twitter.com/DrAzureAD) ([2017-Current](https://aadinternals.com/post/welcome/)), for the Office 365 blog

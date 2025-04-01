@@ -1,0 +1,60 @@
+= Token
+:toc: macro
+
+The success and output of an authentication package call is directly affected by the current effective token of the calling thread.
+Often times, the effective token will either need to be SYSTEM or a target user account (ex. for `cloudap` commands).
+The `!token` commands are provided to make it easy to adjust the current effective token for LSA Whisperer.
+
+toc::[]
+
+== Commands
+
+=== elevate
+
+Attempt to acquire and impersonate a token for another specified process.
+The command will implicitly enable `SeDebugPrivilege` to allow itself to succeed.
+If no process is specified, the command will attempt to impersonate `winlogon.exe` which will "elevate" the process to SYSTEM.
+If the command fails, it is most likely due to the current process not having the `SeDebugPrivilege`.
+Please ensure the process was ran administrator.
+Due to Microsoft's Mandatory Integrity Control (MIC) technology, running the process as non-administrator is the most common reason why it may not have the `SeDebugPrivilege`.
+
+```
+!token elevate [-h] [--pid <pid>]
+```
+
+=== impersonate
+
+Attempt to acquire and impersonate a token for a process in another terminal services session.
+The list of terminal services sessions may be acquired by using either the `query` or `qwinsta` utilities which ship with Windows.
+The `id` parameter must be the numerical id for the session (ex. `1`).
+
+```
+!token impersonate [-h] --session <id>
+```
+
+=== revert_to_self
+
+Revert to using the primary access token for the current process if another token was being impersonated.
+If no token was being impersonated, then the command does nothing.
+
+```
+!token revert_to_self
+```
+
+=== set_privilege
+
+Enable or disable a privilege for the current effective token.
+The token must already have the privilege for the command to succeed.
+The `id` parameter may be any string supported by the `LookupPrivilegeValueW` API (ex. `SeDebugPrivilege` or `SeTcbPrivilege`).
+
+```
+!token set_privilege [-h] [--disable] --privilege <id>
+```
+
+=== whoami
+
+Show the user account name for the current effective token.
+
+```
+!token whoami
+```

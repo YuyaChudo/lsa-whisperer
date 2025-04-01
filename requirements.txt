@@ -1,0 +1,5 @@
+arpy>=2.3.0
+breathe
+sphinx
+sphinx_rtd_theme
+sphinx_sitemap

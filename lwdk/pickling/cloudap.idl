@@ -1,0 +1,120 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// Cloudap credential bag a cache serializations
+//
+
+cpp_quote("// Copyright (C) 2024 Evan McBroom")
+cpp_quote("//")
+cpp_quote("// Cloudap credential bag a cache serializations")
+cpp_quote("//")
+
+#include "ms-dtyp.idl"
+
+[
+    pointer_default(unique)
+]
+interface aadcredentialbag
+{
+typedef enum _AadCredentialAttribute {
+  AadCredentialAttributeInvalid = 0,
+  AadCredentialAttributePassword = 1,
+  AadCredentialAttributeMemberName = 2,
+  AadCredentialAttributeToken = 3,
+} AadCredentialAttribute, *PAadCredentialAttribute;
+
+typedef enum _AadCredentialsType {
+  AadCredentialTypeUnknown = 0,
+  AadCredentialTypePassword = 1,
+  AadCredentialTypeToken = 2,
+} AadCredentialsType, *PAadCredentialsType;
+
+typedef struct _AadCredentialString {
+    ULONG length;
+    PWCHAR pBuffer;
+} AadCredentialString, *PAadCredentialString;
+
+typedef struct _AadCredential {
+    AadCredentialAttribute credentialAttribute;
+    AadCredentialString value;
+} AadCredential, *PAadCredential;
+
+typedef struct _AadCredentialBag {
+    AadCredentialsType credType;
+    ULONG dwCount;
+    PAadCredential credentials;
+} AadCredentialBag, *PAadCredentialBag;
+}
+
+[
+    pointer_default(unique)
+]
+interface cloudapcachetypes
+{
+typedef struct _CloudAPCacheNodeData {
+    ULONG cbCredKey;
+    PUCHAR pCredKey;
+    ULONG cbCacheBlob;
+    PUCHAR pCacheBlob;
+} CloudAPCacheNodeData, *PCloudAPCacheNodeData;
+
+typedef struct _CloudAPCacheNodeData2 {
+    ULONG dwMagic;
+    ULONG dwVersion;
+    ULONG dwFlags;
+    ULONG cbCredKey;
+    PUCHAR pCredKey;
+    ULONG cbCacheBlob;
+    PUCHAR pCacheBlob;
+} CloudAPCacheNodeData2, *PCloudAPCacheNodeData2;
+
+typedef struct _CloudAPCacheNode {
+    ULONG credType;
+    ULONG cbEncryptedCredHashOrPublicKey;
+    [unique, size_is(cbEncryptedCredHashOrPublicKey)] PBYTE pEncryptedCredHashOrPublicKey;
+    ULONG cbEncryptedCacheNodeData;
+    [unique, size_is(cbEncryptedCacheNodeData)] PBYTE pEncryptedCacheNodeData;
+} CloudAPCacheNode, *PCloudAPCacheNode;
+
+typedef struct _CloudAPCache {
+    ULONG flags;
+    GUID credKeyVersion; // Although named "version", this is the credential key id
+    ULONG cCloudAPCacheNodes;
+    [unique, size_is(cCloudAPCacheNodes)] PCloudAPCacheNode pCloudAPCacheNodes;
+} CloudAPCache, *PCloudAPCache;
+}
+
+// The Microsoft cache was originally called the DPAPICloudKeyCache
+// on Windows 10 and later renamed to the LiveSSPCache. Regardless
+// of the name the structure has remained the same.
+[
+    pointer_default(unique)
+]
+interface livesspcachetypes
+{
+typedef struct _CloudKeyNode {
+    ULONG CredType;
+    ULONG EncryptedCloudKeyLength;
+    PUCHAR pEncryptedCloudKey;
+    ULONG EncryptedCredHashLength;
+    PUCHAR pEncryptedCredHash;
+} CloudKeyNode, *PCloudKeyNode;
+
+typedef struct _DPAPICloudKeyVersionPair {
+    ULONG GuidLength;
+    PUCHAR pGuid;
+    ULONG CloudKeyVersionLength;
+    PUCHAR pCloudKeyVersion;
+} DPAPICloudKeyVersionPair, *PDPAPICloudKeyVersionPair;
+
+typedef struct _DPAPICloudKeyVersionMapping {
+    ULONG pairArrayLength;
+    PDPAPICloudKeyVersionPair pPairArray;
+} DPAPICloudKeyVersionMapping, *PDPAPICloudKeyVersionMapping;
+
+typedef struct _DPAPICloudKeyCache {
+    ULONG CloudKeyVersionLength;
+    PUCHAR pCloudKeyVersion;
+    ULONG NumCreds;
+    PCloudKeyNode pCloudKeyNodes;
+} DPAPICloudKeyCache, *PDPAPICloudKeyCache, LiveSSPCache, *PLiveSSPCache;
+}

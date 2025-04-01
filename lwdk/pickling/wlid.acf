@@ -1,0 +1,30 @@
+// Copyright (C) 2025 Evan McBroom
+//
+
+[
+    explicit_handle
+]
+interface modernapi
+{
+typedef [encode, decode, allocate(all_nodes)] PModernAppTokenBag;
+typedef [encode, decode, allocate(all_nodes)] PModernIdentityPropertyBag;
+}
+
+[
+    explicit_handle
+]
+interface credentialbag
+{
+typedef [encode, decode, allocate(all_nodes)] PWLIDCredentialBag;
+}
+
+[
+    explicit_handle
+]
+interface wlidpropertybag {
+typedef [encode, decode] ProofOfPossessionTokenBag;
+typedef [encode, decode] ProofOfPossessionTokenBagOld;
+typedef [encode, decode] UnsignedProofOfPossessionTokenParameter;
+typedef [encode, decode] WlidPropertyBag;
+}
+

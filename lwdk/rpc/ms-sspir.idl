@@ -1,0 +1,530 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// The types were recovered with the assistance of NtObjectManager
+// and RpcView. Type names were identified through manual analysis.
+//
+// References:
+// https://www.tiraniddo.dev/2020/07/generating-ndr-type-serializers-for-c.html
+
+[
+    uuid(4f32adc8-6052-4a04-8701-293ccf2096f0),
+    version(1.0),
+]
+interface sspirpc {
+
+typedef long LSA_OPERATIONAL_MODE_LPC;
+typedef long* PLSA_OPERATIONAL_MODE_LPC;
+
+// Security buffer types
+#define SECBUFFER_EMPTY             0   // Undefined, replaced by provider
+#define SECBUFFER_DATA              1   // Packet data
+#define SECBUFFER_TOKEN             2   // Security token
+#define SECBUFFER_PKG_PARAMS        3   // Package specific parameters
+#define SECBUFFER_MISSING           4   // Missing Data indicator
+#define SECBUFFER_EXTRA             5   // Extra data
+#define SECBUFFER_STREAM_TRAILER    6   // Security Trailer
+#define SECBUFFER_STREAM_HEADER     7   // Security Header
+#define SECBUFFER_NEGOTIATION_INFO  8   // Hints from the negotiation pkg
+#define SECBUFFER_PADDING           9   // non-data padding
+#define SECBUFFER_STREAM            10  // whole encrypted message
+#define SECBUFFER_MECHLIST          11  
+#define SECBUFFER_MECHLIST_SIGNATURE 12 
+#define SECBUFFER_TARGET            13
+#define SECBUFFER_CHANNEL_BINDINGS  14
+#define SECBUFFER_ATTRMASK          		0xF0000000
+#define SECBUFFER_READONLY          		0x80000000  // Buffer is read-only, no checksum
+#define SECBUFFER_READONLY_WITH_CHECKSUM	0x10000000  // Buffer is read-only, and checksummed
+#define SECBUFFER_RESERVED          		0x60000000  // Flags reserved to security system
+
+// Security Context Attributes:
+#define SECPKG_ATTR_SIZES             0
+#define SECPKG_ATTR_NAMES             1
+#define SECPKG_ATTR_LIFESPAN          2
+#define SECPKG_ATTR_DCE_INFO          3
+#define SECPKG_ATTR_STREAM_SIZES      4
+#define SECPKG_ATTR_KEY_INFO          5
+#define SECPKG_ATTR_AUTHORITY         6
+#define SECPKG_ATTR_PROTO_INFO        7
+#define SECPKG_ATTR_PASSWORD_EXPIRY   8
+#define SECPKG_ATTR_SESSION_KEY       9
+#define SECPKG_ATTR_PACKAGE_INFO     10
+#define SECPKG_ATTR_USER_FLAGS       11
+#define SECPKG_ATTR_NEGOTIATION_INFO 12
+#define SECPKG_ATTR_NATIVE_NAMES     13
+#define SECPKG_ATTR_FLAGS            14
+// Windows XP and greater
+#define SECPKG_ATTR_USE_VALIDATED      15
+#define SECPKG_ATTR_CREDENTIAL_NAME    16
+#define SECPKG_ATTR_TARGET_INFORMATION 17
+#define SECPKG_ATTR_ACCESS_TOKEN       18
+// Server 2003 and greater
+#define SECPKG_ATTR_TARGET             19
+#define SECPKG_ATTR_AUTHENTICATION_ID  20
+// Server 2003 SP1 and greater
+#define SECPKG_ATTR_LOGOFF_TIME 21
+// Windows 7 and greater
+#define SECPKG_ATTR_NEGO_KEYS                22
+#define SECPKG_ATTR_PROMPTING_NEEDED         24
+#define SECPKG_ATTR_UNIQUE_BINDINGS          25
+#define SECPKG_ATTR_ENDPOINT_BINDINGS        26
+#define SECPKG_ATTR_CLIENT_SPECIFIED_TARGET  27
+#define SECPKG_ATTR_LAST_CLIENT_TOKEN_STATUS 30
+#define SECPKG_ATTR_NEGO_PKG_INFO            31 // contains nego info of packages
+#define SECPKG_ATTR_NEGO_STATUS              32 // contains the last error
+#define SECPKG_ATTR_CONTEXT_DELETED          33 // a context has been deleted
+// Windows 8 or greater
+#define SECPKG_ATTR_DTLS_MTU                    34
+#define SECPKG_ATTR_DATAGRAM_SIZES              SECPKG_ATTR_STREAM_SIZES
+#define SECPKG_ATTR_SUBJECT_SECURITY_ATTRIBUTES 128
+// windows 8.1 or greater
+#define SECPKG_ATTR_APPLICATION_PROTOCOL 35
+// Windows 10 or greater
+#define SECPKG_ATTR_NEGOTIATED_TLS_EXTENSIONS 36
+#define SECPKG_ATTR_IS_LOOPBACK               37  // indicates authentication to localhost
+
+// QueryContextAttributes/QueryCredentialsAttribute extensions
+#define SECPKG_ATTR_ISSUER_LIST                   0x50 // (OBSOLETE) returns SecPkgContext_IssuerListInfo
+#define SECPKG_ATTR_REMOTE_CRED                   0x51 // (OBSOLETE) returns SecPkgContext_RemoteCredentialInfo
+#define SECPKG_ATTR_LOCAL_CRED                    0x52 // (OBSOLETE) returns SecPkgContext_LocalCredentialInfo
+#define SECPKG_ATTR_REMOTE_CERT_CONTEXT           0x53 // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_LOCAL_CERT_CONTEXT            0x54 // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_ROOT_STORE                    0x55 // returns HCERTCONTEXT to the root store
+#define SECPKG_ATTR_SUPPORTED_ALGS                0x56 // returns SecPkgCred_SupportedAlgs
+#define SECPKG_ATTR_CIPHER_STRENGTHS              0x57 // returns SecPkgCred_CipherStrengths
+#define SECPKG_ATTR_SUPPORTED_PROTOCOLS           0x58 // returns SecPkgCred_SupportedProtocols
+#define SECPKG_ATTR_ISSUER_LIST_EX                0x59 // returns SecPkgContext_IssuerListInfoEx
+#define SECPKG_ATTR_CONNECTION_INFO               0x5a // returns SecPkgContext_ConnectionInfo
+#define SECPKG_ATTR_EAP_KEY_BLOCK                 0x5b // returns SecPkgContext_EapKeyBlock
+#define SECPKG_ATTR_MAPPED_CRED_ATTR              0x5c // returns SecPkgContext_MappedCredAttr
+#define SECPKG_ATTR_SESSION_INFO                  0x5d // returns SecPkgContext_SessionInfo
+#define SECPKG_ATTR_APP_DATA                      0x5e // sets/returns SecPkgContext_SessionAppData
+#define SECPKG_ATTR_REMOTE_CERTIFICATES           0x5F // returns SecPkgContext_Certificates
+#define SECPKG_ATTR_CLIENT_CERT_POLICY            0x60 // sets    SecPkgCred_ClientCertCtlPolicy
+#define SECPKG_ATTR_CC_POLICY_RESULT              0x61 // returns SecPkgContext_ClientCertPolicyResult
+#define SECPKG_ATTR_USE_NCRYPT                    0x62 // Sets the CRED_FLAG_USE_NCRYPT_PROVIDER FLAG on cred group
+#define SECPKG_ATTR_LOCAL_CERT_INFO               0x63 // returns SecPkgContext_CertInfo
+#define SECPKG_ATTR_CIPHER_INFO                   0x64 // returns new CNG SecPkgContext_CipherInfo
+#define SECPKG_ATTR_EAP_PRF_INFO                  0x65 // sets    SecPkgContext_EapPrfInfo
+#define SECPKG_ATTR_SUPPORTED_SIGNATURES          0x66 // returns SecPkgContext_SupportedSignatures
+#define SECPKG_ATTR_REMOTE_CERT_CHAIN             0x67 // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_UI_INFO                       0x68 // sets SEcPkgContext_UiInfo
+#define SECPKG_ATTR_EARLY_START                   0x69 // sets SecPkgContext_EarlyStart
+#define SECPKG_ATTR_KEYING_MATERIAL_INFO          0x6a // sets SecPkgContext_KeyingMaterialInfo
+#define SECPKG_ATTR_KEYING_MATERIAL               0x6b // returns SecPkgContext_KeyingMaterial
+#define SECPKG_ATTR_SRTP_PARAMETERS               0x6c // returns negotiated SRTP parameters
+#define SECPKG_ATTR_TOKEN_BINDING                 0x6d // returns SecPkgContext_TokenBinding
+#define SECPKG_ATTR_CONNECTION_INFO_EX            0x6e // returns SecPkgContext_ConnectionInfoEx
+#define SECPKG_ATTR_KEYING_MATERIAL_TOKEN_BINDING 0x6f // returns SecPkgContext_KeyingMaterial specific to Token Binding
+#define SECPKG_ATTR_KEYING_MATERIAL_INPROC        0x70 // returns SecPkgContext_KeyingMaterial_Inproc
+#define SECPKG_ATTR_CERT_CHECK_RESULT             0x71 // returns SecPkgContext_CertificateValidationResult, use during and after SSPI handshake loop
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC      0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+#define SECPKG_ATTR_SESSION_TICKET_KEYS           0x73 // sets    SecPkgCred_SessionTicketKeys
+
+// These are the valid flags for some operations
+#define SPMAPI_FLAG_ERROR_RET   0x0001  // Indicates an error return
+#define SPMAPI_FLAG_MEMORY      0x0002  // Memory was allocated in client
+#define SPMAPI_FLAG_PREPACK     0x0004  // Data packed in bData field
+#define SPMAPI_FLAG_GETSTATE    0x0008  // driver should call GetState
+#define SPMAPI_FLAG_ANSI_CALL   0x0010  // Called via ANSI stub
+#define SPMAPI_FLAG_HANDLE_CHG  0x0020  // A handle was changed
+#define SPMAPI_FLAG_CALLBACK    0x0040  // Callback to calling process
+#define SPMAPI_FLAG_ALLOCS      0x0080  // VM Allocs were placed in prepack
+#define SPMAPI_FLAG_EXEC_NOW    0x0100  // Execute in LPC thread
+#define SPMAPI_FLAG_WIN32_ERROR 0x0200  // Status is a win32 error
+#define SPMAPI_FLAG_KMAP_MEM    0x0400  // Call contains buffers in the kmap
+
+// short
+typedef enum _SSPIR_SID_NAME_USE {
+    SSPIR_SIDTypeUser = 1,
+    SSPIR_SIDTypeGroup,
+    SSPIR_SIDTypeDomain,
+    SSPIR_SIDTypeAlias,
+    SSPIR_SIDTypeWellKnownGroup,
+    SSPIR_SIDTypeDeletedAccount,
+    SSPIR_SIDTypeInvalid,
+    SSPIR_SIDTypeUnknown,
+    SSPIR_SIDTypeComputer,
+    SSPIR_SIDTypeLabel,
+    SSPIR_SIDTypeLogonSession
+} SSPIR_SID_NAME_USE, *PSSPIR_SID_NAME_USE;
+
+// short
+typedef enum _SSPIR_SECURITY_LOGON_TYPE {
+  SSPIR_Interactive = 2,
+  SSPIR_Network,
+  SSPIR_Batch,
+  SSPIR_Service,
+  SSPIR_Proxy,
+  SSPIR_Unlock,
+  SSPIR_NetworkCleartext,
+  SSPIR_NewCredentials,
+  SSPIR_RemoteInteractive,
+  SSPIR_CachedInteractive,
+  SSPIR_CachedRemoteInteractive,
+  SSPIR_CachedUnlock
+} SSPIR_SECURITY_LOGON_TYPE, *PSSPIR_SECURITY_LOGON_TYPE;
+
+typedef struct _SSPIR_STRING {
+	short Length;
+	short MaximumLength;
+	[unique] [size_is(MaximumLength)] [length_is(Length)] char* Buffer;
+} SSPIR_STRING;
+
+typedef struct _SSPIR_SecBuffer {
+    unsigned long cbBuffer;
+    unsigned long BufferType;
+	[unique][size_is(cbBuffer)] char* pvBuffer;
+} SSPIR_SecBuffer;
+
+// The argument names are likely to be slightly off
+// The corresponding struct is:
+//   typedef struct _SSPIR_SPMCallbackAPI {
+//       ULONG Type;
+//       PVOID CallbackFunction;
+//       PVOID Argument1;
+//       PVOID Argument2;
+//       SEC_BUFFER Input;
+//       SEC_BUFFER Output;
+//   } SSPIR_SPMCallbackAPI;
+typedef struct _SSPIR_SPMCallbackAPI {
+	unsigned long Type;
+	unsigned __int3264 Argument1;
+	unsigned __int3264 Argument2;
+	SSPIR_SecBuffer InputOutput;
+	char StructMember4;
+} SSPIR_SPMCallbackAPI;
+
+typedef struct _SSPIR_SecHandle {
+	hyper dwLower;
+	hyper dwUpper;
+} SSPIR_SecHandle;
+
+typedef struct _SSPIR_SECURITY_STRING {
+	short Length;
+	short MaximumLength;
+	[unique] [size_is(MaximumLength/2)] [length_is(Length/2)] short* Buffer;
+} SSPIR_SECURITY_STRING;
+
+typedef struct _SSPIR_LUID {
+	long LowPart;
+	long HighPart;
+} SSPIR_LUID;
+
+typedef struct SSPIR_AuthenticationInformation {
+	long Length;
+	hyper Reserved; // Set to 0
+	[unique] [size_is(Length)] char* Buffer;
+} SSPIR_AuthenticationInformation;
+
+// SecHandle
+typedef struct _SSPIR_PCredHandle {
+	hyper dwLower;
+	hyper dwUpper;
+} SSPIR_PCredHandle;
+
+// LARGE_INTEGER
+typedef struct _SSPIR_PTimeStamp {
+	hyper QuadPart;
+} SSPIR_PTimeStamp;
+
+typedef struct _SSPIR_SecBufferDesc {
+	long ulVersion;
+	long cBuffers;
+	[unique] [size_is(cBuffers)] SSPIR_SecBuffer* pBuffers;
+} SSPIR_SecBufferDesc;
+
+typedef struct Struct_466_t {
+	long StructMember0;
+	long StructMember1;
+} Struct_466_t;
+
+typedef struct Struct_516_t {
+	long StructMember0;
+	long StructMember1;
+	[unique] [size_is(StructMember1)] struct Struct_466_t* StructMember2;
+} Struct_516_t;
+
+typedef struct _SSPIR_SecPkgCredentials_Names {
+	[unique] [string] wchar_t* StructMember0;
+} SSPIR_SecPkgCredentials_Names;
+
+typedef struct _SSPIR_SecPkgCred_SupportedAlgs {
+	long cSupportedAlgs;
+	[unique] long* palgSupportedAlgs; // ALG_ID*
+} SSPIR_SecPkgCred_SupportedAlgs;
+
+typedef struct _SSPIR_SecPkgCred_CipherStrengths {
+	long dwMinimumCipherStrength;
+	long dwMaximumCipherStrength;
+} SSPIR_SecPkgCred_CipherStrengths;
+
+typedef struct _SSPIR_SecPkgCred_SupportedProtocols {
+	long StructMember0;
+} SSPIR_SecPkgCred_SupportedProtocols;
+
+typedef [switch_type(unsigned long)] union _SSPIR_SSL_ATTRIBUTE {
+	[case(SECPKG_ATTR_NAMES)] [unique] SSPIR_SecPkgCredentials_Names* Names;
+	[case(SECPKG_ATTR_SUPPORTED_ALGS)] [unique] SSPIR_SecPkgCred_SupportedAlgs* SupportedAlgs;
+	[case(SECPKG_ATTR_CIPHER_STRENGTHS)] [unique] SSPIR_SecPkgCred_CipherStrengths* CipherStrengths;
+	[case(SECPKG_ATTR_SUPPORTED_PROTOCOLS)] [unique] SSPIR_SecPkgCred_SupportedProtocols* SupportedProtocols;
+	[default] ;
+} SSPIR_SSL_ATTRIBUTE;
+
+typedef struct _SSPIR_SecPkgContext_Sizes {
+	long cbMaxToken;
+	long cbMaxSignature;
+	long cbBlockSize;
+	long cbSecurityTrailer;
+} SSPIR_SecPkgContext_Sizes;
+
+typedef struct _SSPIR_SecPkgInfoW {
+	long fCapabilities;
+	short wVersion;
+	short wRPCID;
+	long cbMaxToken;
+	[unique][string] wchar_t* Name;
+	[unique][string] wchar_t* Comment;
+} SSPIR_SecPkgInfoW;
+
+typedef struct _SSPIR_SecPkgContext_NegotiationInfo {
+	[unique]SSPIR_SecPkgInfoW* PackageInfo;
+	long NegotiationState;
+} SSPIR_SecPkgContext_NegotiationInfo;
+
+typedef [switch_type(unsigned long)] union _SSPIR_NEG_ATTRIBUTE {
+	[case(SECPKG_ATTR_SIZES)] [unique] SSPIR_SecPkgContext_Sizes* Sizes;
+	[case(SECPKG_ATTR_NEGOTIATION_INFO)] [unique] SSPIR_SecPkgContext_NegotiationInfo* NegotiationInfo;
+	[default];
+} SSPIR_NEG_ATTRIBUTE;
+
+typedef struct Struct_848_t {
+	long StructMember0;
+	short StructMember1;
+	short StructMember2;
+	byte StructMember3[8];
+} Struct_848_t;
+
+typedef struct Struct_888_t {
+	long StructMember0;
+	struct Struct_848_t StructMember1;
+	long StructMember2;
+	long StructMember3;
+	long StructMember4;
+	long StructMember5;
+	long StructMember6;
+	[unique] [string] wchar_t* StructMember7;
+	[unique] [string] wchar_t* StructMember8;
+} Struct_888_t;
+
+#define SSPIR_TOKEN_SOURCE_LENGTH 8
+
+typedef struct _SSPIR_TOKEN_SOURCE {
+	char SourceName[SSPIR_TOKEN_SOURCE_LENGTH];
+	SSPIR_LUID SourceIdentifier;
+} SSPIR_TOKEN_SOURCE;
+
+typedef struct _SSPIR_SSPIR_SID_IDENTIFIER_AUTHORITY {
+	char Value[6];
+} SSPIR_SSPIR_SID_IDENTIFIER_AUTHORITY;
+
+typedef struct _SSPIR_SID {
+	char Revision;
+	char SubAuthorityCount;
+	SSPIR_SSPIR_SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
+	[size_is(SubAuthorityCount)] long SubAuthority[];
+} SSPIR_SID;
+
+typedef struct _SSPIR_SID_AND_ATTRIBUTES {
+	[unique]SSPIR_SID* Sid;
+	long Attributes;
+} SSPIR_SID_AND_ATTRIBUTES;
+
+typedef struct _SSPIR_TOKEN_GROUPS {
+	long GroupCount;
+	[size_is(GroupCount)] SSPIR_SID_AND_ATTRIBUTES Groups[];
+} SSPIR_TOKEN_GROUPS;
+
+typedef struct _SSPIR_QUOTA_LIMITS {
+	hyper PagedPoolLimit;
+	hyper NonPagedPoolLimit;
+	hyper MinimumWorkingSetSize;
+	hyper MaximumWorkingSetSize;
+	hyper PagefileLimit;
+	SSPIR_PTimeStamp TimeLimit;
+} SSPIR_QUOTA_LIMITS;
+
+// procnum 0:
+// Creates a connection record to the Security Package Manager (SPM or SPMGR)
+// LogonProcessName: optional. May be anything
+// ClientMode: optional
+//   - 0: not specified
+//   - 1: kernel client
+//   - 2: user client
+// LsaConnectUntrusted -> CreateRpcConnection
+long SspirConnectRpc(
+    [in][unique][string] unsigned char* LogonProcessName, 
+    [in]long ClientMode, 
+    [out]long *PackageCount, 
+    [out]PLSA_OPERATIONAL_MODE_LPC OperationalMode, 
+    [out][context_handle] void** LsaHandle);
+
+// procnum 1:
+// LsaDeregisterLogonProcess -> DisconnectRpcConnection
+long SspirDisconnectRpc(
+    [in][out][context_handle] void** LsaHandle);
+
+// procnum 2:
+// The server function is the same as SspirDisconnectRpc
+long SspirDisconnectRpc2(
+    [in][out][context_handle] void** LsaHandle);
+    
+// procnum 3:
+// LsaCallAuthenticationPackage -> CallRpcSPM
+// LsaLookupAuthenticationPackage -> CallRpcSPM
+long SspirCallRpc(
+    [in][context_handle] void* LsaHandle, 
+    [in]long SubmitBufferLength, 
+    [in][size_is(SubmitBufferLength)] char* ProtocolSubmitBuffer, 
+    [out]long* ReturnBufferLength, 
+    [out][ref][size_is(, *ReturnBufferLength)] char** ProtocolReturnBuffer, 
+    [out]SSPIR_SPMCallbackAPI* Callback);
+
+// procnum 4:
+// LsaAcquireCredentialsHandle -> SspipAcquireCredentialsHandle
+long SspirAcquireCredentialsHandle(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in][unique]SSPIR_SECURITY_STRING* Principal, 
+    [in]SSPIR_SECURITY_STRING* SecPackage, 
+    [in]long CredentialUse, 
+    [in][unique]SSPIR_LUID* LogonID, 
+    [in]struct SSPIR_AuthenticationInformation* AuthenticationInformation, // Set to nullptr
+    [in]hyper GetKeyFunction, 
+    [in]hyper GetKeyArgument, 
+    [in]long Flags, // Usually 0 or SPMAPI_FLAG_ANSI_CALL
+    [out]SSPIR_PCredHandle* Credential, 
+    [out]SSPIR_PTimeStamp* Expiry,
+    [in]SSPIR_SPMCallbackAPI* InputCallback, 
+    [out]SSPIR_SPMCallbackAPI* OutputCallback);
+
+// procnum 5:
+// LsaFreeCredentialsHandle -> SspipFreeCredentialsHandle
+long SspirFreeCredentialsHandle(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_PCredHandle* Credential, 
+    [out]SSPIR_SPMCallbackAPI* Callback);
+
+// procnum 6:
+// LsaInitializeSecurityContext -> SspipProcessSecurityContext
+// LsaAcceptSecurityContext -> SspipProcessSecurityContext
+long SspirProcessSecurityContext(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in][out]long* arg_2, 
+    [in][unique]SSPIR_SECURITY_STRING* arg_3, 
+    [in]SSPIR_PCredHandle* arg_4, 
+    [in]SSPIR_PCredHandle* arg_5, 
+    [in]long arg_6, 
+    [in]long arg_7, 
+    [in][unique][size_is(32)] char* IpAddress, // Optional and normally set by SeciAllocateAndSetIPAddress
+    [in][unique][string] wchar_t* arg_9, 
+    [in]SSPIR_SecBufferDesc* arg_10, 
+    [in][ref]struct Struct_516_t* arg_11, 
+    [out]SSPIR_SecBufferDesc* arg_12, 
+    [out][ref]struct Struct_516_t** arg_13, 
+    [out] SSPIR_SecBuffer* arg_14, 
+    [out]SSPIR_PCredHandle* arg_15, 
+    [out]long* arg_16, 
+    [out]SSPIR_PTimeStamp* arg_17, 
+    [out]long* arg_18, 
+    [in]SSPIR_SPMCallbackAPI* arg_19, 
+    [out]SSPIR_SPMCallbackAPI* arg_20);
+
+// procnum 7:
+// LsaDeleteSecurityContext -> SspipDeleteSecurityContext
+long SspirDeleteSecurityContext(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_PCredHandle* Credential, 
+    [out]SSPIR_SPMCallbackAPI* Callback);
+
+// procnum 8:
+// I believe: QueryCredentialsAttributes (Schannel) -> SspirNegQueryContextAttributes
+long SspirSslQueryCredentialsAttributes(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_PCredHandle* Credential,
+    [in]unsigned long Attribute, 
+    [out][switch_is(Attribute)]SSPIR_SSL_ATTRIBUTE* Buffer);
+
+// procnum 9:
+// QueryContextAttributes (Negotiate) -> SspirNegQueryContextAttributes
+long SspirNegQueryContextAttributes(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_PCredHandle* Credential, 
+    [in]unsigned long Attribute, 
+    [out][switch_is(Attribute)]SSPIR_NEG_ATTRIBUTE* Buffer);
+
+// procnum a:
+// I believe: SetCredentialsAttributes (Schannel) -> SspirNegQueryContextAttributes
+long SspirSslSetCredentialsAttributes(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_PCredHandle* Credential, 
+    [in]struct Struct_888_t* Buffer);
+
+// procnum b:
+// LsaApplyControlToken -> ApplyControlToken
+long SspirApplyControlToken(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_PCredHandle* Credential, 
+    [in]SSPIR_SecBufferDesc* Input);
+
+// procnum c:
+// LsaLogonUser -> SspipLogonUser
+long SspirLogonUser(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_STRING* OriginName, 
+    [in]SSPIR_SECURITY_LOGON_TYPE LogonType,
+    [in]long AuthenticationPackage, 
+    [in]SSPIR_AuthenticationInformation* AuthenticationInformation, 
+    [in]SSPIR_TOKEN_SOURCE* SourceContext, 
+    [in][unique]SSPIR_TOKEN_GROUPS* LocalGroups,
+    // Next two values are optional and normally set by SeciAllocateAndSetIPAddress
+    [in]long arg_8, // SecTlsIP[0x20]
+    [in][unique][size_is(32)] char* IpAddress, // SecTlsIP
+    [out]long* SubStatus, 
+    [out]hyper* ProfileBuffer, // Set to nullptr
+    [out]long* ProfileBufferLength, 
+    [in][out]SSPIR_LUID* LogonId, 
+    [out]hyper** Token, // HANDLE*
+    [out]SSPIR_QUOTA_LIMITS* QuotaLimits);
+
+// procnum d:
+long SspirLookupAccountSid(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]SSPIR_SID * Sid, 
+    [out]SSPIR_SECURITY_STRING* Name, 
+    [out]SSPIR_SECURITY_STRING* Domain, 
+    [out][ref]PSSPIR_SID_NAME_USE NameUse);
+
+// procnum e:
+// GetUserNameExW -> SspipGetUserName
+long SspirGetUserName(
+    [in][context_handle] void* LsaHandle, 
+    [in]SSPIR_SecHandle* Context, 
+    [in]long Options, // Likely EXTENDED_NAME_FORMAT
+    [out]SSPIR_SECURITY_STRING* Name, 
+    [out]long* Size);
+
+// procnum f:
+// InitState
+long SspirGetInprocDispatchTable(
+    [in][context_handle] void* LsaHandle, 
+    [out]unsigned __int3264* DispatchTable);
+} 

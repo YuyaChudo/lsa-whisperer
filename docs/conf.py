@@ -2,7 +2,7 @@
 
 # Project info
 project = 'SSPI Library'
-copyright = '2022, Evan McBroom'
+copyright = '2025, Evan McBroom'
 author = 'Evan McBroom'
 
 # General config

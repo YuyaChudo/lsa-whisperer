@@ -1,0 +1,96 @@
+ifdef::env-github[]
+:note-caption: :pencil2:
+endif::[]
+
+= Secret Filter AP
+:toc: macro
+
+Sfapm is the "Web Defense" authentication package (AP) and security package (SP), available on NT 10 19045 and above.
+Sfapm is a part of Microsoft's https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-webthreatdefense[WebThreatDefense] technology and is documented as the https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/enhanced-phishing-protection[Enhanced Phishing Protection in Microsoft Defender SmartScreen].
+Sfapm was first publicly audited by https://x.com/_xpn_/status/1579229941287485440[Adam Chester] and is further described here.
+
+The main purpose of sfapm is to monitor user activity to identify if a user typed or copied their password into an application.
+It has a complementary DLL, named `sfape.dll`, which is used to support running the package in a https://learn.microsoft.com/en-us/windows/win32/trusted-execution/enclaves-available-in-vertdll[VBS enclave].
+Microsoft does not publish symbols for the current release of sfapm, but symbols are at least published for file version 1.0 for NT 10 14983 (e.g., "WinBuild.160101-0800").
+
+toc::[]
+
+== Functions
+
+Although the package does implement the `CallPackage`, `CallPackageUntrusted`, and `CallPackagePassthrough` functions, they do not implement any internal message protocol.
+They are only implemented to log their invocations. 
+As such, supporting an sfapm package call is not currently planned for LSA Whisperer.
+
+== SP Functions
+
+Although LSA Whisperer focuses on the AP functionality of an SSP, the SP portion of sfapm is documented here as a convenience for readers.
+Sfapm implements multiple SP APIs, but it does not implement any security protocol.
+Similar to the https://learn.microsoft.com/en-us/windows/win32/secauthn/authentication-functions#functions-implemented-by-sspaps[AP APIs] that sfapm implements, sfapm implements multiple SP APIs but only to log when they are invoked.
+
+=== SpAcceptCredentials
+
+Rudimentary logging is implemented in all of sfapm's SP APIs, but additional work is performed for its implementation of `SpAcceptCredentials`.
+An SP's `SpAcceptCredentials` API is invoked by LSASS when a user logs on to allow the package to create a new logon session for the user.
+Sfapm's implementation of `SpAcceptCredentials` will check if the logon ID is SYSTEM (e.g., `0x3e7`) or if its a network logon.
+If neither is true, sfapm will additionally log the `LogonType`, `AccountName`, and  `PrimaryCredentials` parameters that are passed to the function.
+
+== RPC Servers
+
+Sfapm implements two RPC servers that may be of interest to readers and as such are documented here.
+These servers are used to monitor logon requests, clipboard activity, and keystroke input for all user sessions.
+If  Credential Isolation is not enabled, sfapm will initialize these RPC servers when it is loaded into LSASS during startup.
+If either the following Windows features are enabled, sfapm will additionally load the `SFAPE.dll` module through `sfapm!LoadEnclaveImage`:
+
+- Virtual-based Security (VBS) is enabled
+- The `ProcessRedirectionTrustPolicy` mitigation is enabled for LSASS
+
+.Sfapm RPC Interfaces
+[[interfaces]]
+[%header]
+|===
+| Description             | Name      | UUID (Version)
+| IM RPC Protocol         | `imsfk`   | `36cc8d98-6e89-4325-bb5e-1c70f13a2981` (1.0)
+| Clip Board RPC protocol | `clipsfk` | `cf148a37-dacc-4183-afcf-77307190be06` (1.0)
+|===
+
+=== Imsfk
+
+.Imsfk Operations
+[%header]
+|===
+| Opnum | Operation
+| `0x0` | SFRCharactersInput
+| `0x1` | SfapRPCCtxClose
+| `0x2` | SfaRPCtxOpen
+| `0x3` | SfapRpcQueueStateUpdateRequest
+|===
+
+==== SFRCharactersInput
+
+The RPC function is called everytime a user provides keyboard input to process that input, unless https://x.com/_xpn_/status/1579229932051660801[rate limiting is in effect due to a high rate of keystrokes].
+The input is used to identify if a user typed a password, similar to what is described in the `SFRClipboardInput` operation for clipsfk.
+
+=== Clipsfk
+
+.Clipsfk Operations
+[%header]
+|===
+| Opnum | Operation
+| `0x0` | SFRClipboardInput
+|===
+
+==== SFRClipboardInput
+
+The RPC function is invoked when a user performs a copy or paste action if the following items are truefootnote:[A more recent (2025) audit of the criteria needed for `SFRClipboardInput` to be invoked was kindly provided by https://x.com/alexsho71327477[Alex Short].]:
+
+. If the pasted content is unicode or ascii text
+. The text has a length between 7-257 characters inclusively
+. The current foreground window is the process performing the paste
+. Windows notification facility (WNF) state name `WNF_WTD_SENSOR_MONITORING_STATE` is 
+
+These checks are done to determine if the buffer may potentially contain a password.
+If the RPC function is called, it will hash the buffer with SHA256 (via `BCryptHash`), then hash that result with `BCryptDeriveKeyPBKDF2`.
+It will then compare the final result with a hash of the user's current credential which is stored by LSASS.
+
+If the derived hashes match, sfapm will send an ETW message using the WTDS Provider and https://x.com/_xpn_/status/1579229941287485440[another event to the WTD device driver].
+The device driver will forward the event to the Web Threat Defense service for further processing.

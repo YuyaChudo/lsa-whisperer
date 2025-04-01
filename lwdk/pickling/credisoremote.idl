@@ -1,0 +1,211 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// Remote credential isolation serializations for kerberos and ntlm
+//
+
+cpp_quote("// Copyright (C) 2024 Evan McBroom")
+cpp_quote("//")
+cpp_quote("// Remote credential isolation serializations for kerberos and ntlm")
+cpp_quote("//")
+
+#include "ms-dtyp.idl"
+
+cpp_quote("/// <summary>")
+cpp_quote("/// The remote credential guard call that should be issued.")
+cpp_quote("/// </summary>")
+typedef enum _RemoteGuardCallId {
+    RemoteCallMinimum = 0x0000,
+    RemoteCallGenericMinimum = 0x0000,
+    RemoteCallGenericPing = 0x0000,
+    RemoteCallGenericMaximum = 0x00ff,
+    RemoteCallKerbMinimum = 0x0100,
+    RemoteCallKerbNegotiateVersion = 0x0100,
+    RemoteCallKerbBuildAsReqAuthenticator = 0x0101,
+    RemoteCallKerbVerifyServiceTicket = 0x0102,
+    RemoteCallKerbCreateApReqAuthenticator = 0x0103,
+    RemoteCallKerbDecryptApReply = 0x0104,
+    RemoteCallKerbUnpackKdcReplyBody = 0x0105,
+    RemoteCallKerbComputeTgsChecksum = 0x0106,
+    RemoteCallKerbBuildEncryptedAuthData = 0x0107,
+    RemoteCallKerbPackApReply = 0x0108,
+    RemoteCallKerbHashS4UPreauth = 0x0109,
+    RemoteCallKerbSignS4UPreauthData = 0x010a,
+    RemoteCallKerbVerifyChecksum = 0x010b,
+    RemoteCallKerbBuildTicketArmorKey = 0x010c,
+    RemoteCallKerbBuildExplicitArmorKey = 0x010d,
+    RemoteCallKerbVerifyFastArmoredTgsReply = 0x010e,
+    RemoteCallKerbVerifyEncryptedChallengePaData = 0x010f,
+    RemoteCallKerbBuildFastArmoredKdcRequest = 0x0110,
+    RemoteCallKerbDecryptFastArmoredKerbError = 0x0111,
+    RemoteCallKerbDecryptFastArmoredAsReply = 0x0112,
+    RemoteCallKerbDecryptPacCredentials = 0x0113,
+    RemoteCallKerbCreateECDHKeyAgreement = 0x0114,
+    RemoteCallKerbCreateDHKeyAgreement = 0x0115,
+    RemoteCallKerbDestroyKeyAgreement = 0x0116,
+    RemoteCallKerbKeyAgreementGenerateNonce = 0x0117,
+    RemoteCallKerbFinalizeKeyAgreement = 0x0118,
+    RemoteCallKerbMaximum = 0x01ff,
+    RemoteCallNtlmMinimum = 0x0200,
+    RemoteCallNtlmNegotiateVersion = 0x0200,
+    RemoteCallNtlmLm20GetNtlm3ChallengeResponse = 0x0201, // Was RemoteCallNtlmProtectCredential in v160714 but was removed in v210407
+    RemoteCallNtlmCalculateNtResponse = 0x0202, // This member and all follow on members were incremented by 1 when RemoteCallNtlmProtectCredential existed
+    RemoteCallNtlmCalculateUserSessionKeyNt = 0x0203,
+    RemoteCallNtlmCompareCredentials = 0x0204,
+    RemoteCallNtlmMaximum = 0x02ff,
+    RemoteCallMaximum = 0x02ff,
+    RemoteCallInvalid = 0xffff,
+} RemoteGuardCallId,
+    *PRemoteGuardCallId;
+
+[
+    pointer_default(unique)
+]
+interface kerbcredisoremote
+{
+cpp_quote("/// <summary>")
+cpp_quote("/// The input buffer for remote credential kerberos calls.")
+cpp_quote("/// </summary>")
+typedef struct _KerbCredIsoRemoteInput {
+    RemoteGuardCallId CallId;
+    union {
+        typedef struct {
+            ULONG MaxSupportedVersion;
+        } NegotiateVersion;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY EncryptionKey;
+            PKERB_ENCRYPTION_KEY ArmorKey;
+            PLARGE_INTEGER TimeSkew;
+        } BuildAsReqAuthenticator;
+        typedef struct {
+            PKERB_ASN1_DATA PackedTicket;
+            PKERB_ENCRYPTION_KEY ServiceKey;
+            PLARGE_INTEGER TimeSkew;
+        } VerifyServiceTicket;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY EncryptionKey;
+            ULONG SequenceNumber;
+            PKERB_RPC_INTERNAL_NAME ClientName;
+            PUNICODE_STRING ClientRealm;
+            PLARGE_INTEGER SkewTime;
+            PKERB_ENCRYPTION_KEY SubKey;
+            PKERB_ASN1_DATA AuthData;
+            PKERB_ASN1_DATA GssChecksum;
+            ULONG KeyUsage;
+        } CreateApReqAuthenticator;
+        typedef struct {
+            PKERB_ASN1_DATA EncryptedReply;
+            PKERB_ENCRYPTION_KEY Key;
+        } DecryptApReply;
+        typedef struct {
+            PKERB_ASN1_DATA EncryptedData;
+            PKERB_ENCRYPTION_KEY Key;
+            PKERB_ENCRYPTION_KEY StrengthenKey;
+            ULONG Pdu;
+            ULONG KeyUsage;
+        } UnpackKdcReplyBody;
+        typedef struct {
+            PKERB_ASN1_DATA RequestBody;
+            PKERB_ENCRYPTION_KEY Key;
+            ULONG ChecksumType;
+        } ComputeTgsChecksum;
+        typedef struct {
+            ULONG KeyUsage;
+            PKERB_ENCRYPTION_KEY Key;
+            PKERB_ASN1_DATA PlainAuthData;
+        } BuildEncryptedAuthData;
+        typedef struct {
+            PKERB_ASN1_DATA Reply;
+            PKERB_ASN1_DATA ReplyBody;
+            PKERB_ENCRYPTION_KEY SessionKey;
+        } PackApReply;
+        typedef struct {
+            PKERB_ASN1_DATA S4UPreauth;
+            PKERB_ENCRYPTION_KEY Key;
+            LONG ChecksumType;
+        } HashS4UPreauth;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY Key;
+            LONG IsRequest;
+            PKERB_ASN1_DATA UserId;
+            PLONG ChecksumType;
+        } SignS4UPreauthData;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY Key;
+            ULONG ChecksumType;
+            ULONG ExpectedChecksumSize;
+            const UCHAR* ExpectedChecksum;
+            ULONG DataToCheckSize;
+            const UCHAR* DataToCheck;
+        } VerifyChecksum;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY SharedKey;
+        } BuildTicketArmorKey;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY TicketSessionKey;
+        } BuildExplicitArmorKey;
+        typedef struct {
+            PKERB_ASN1_DATA KdcRequest;
+            PKERB_ASN1_DATA KdcReply;
+            PKERB_ENCRYPTION_KEY ArmorKey;
+            PKERB_ENCRYPTION_KEY ReplyKey;
+        } VerifyFastArmoredTgsReply;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY ArmorKey;
+            PKERB_ENCRYPTION_KEY UserKey;
+            PKERB_RPC_PA_DATA PaData;
+        } VerifyEncryptedChallengePaData;
+        typedef struct {
+            KEY_AGREEMENT_HANDLE KeyAgreementHandle;
+            PKERB_ASN1_DATA KdcRequest;
+            PKERB_RPC_PA_DATA PaTgsReqPaData;
+            PKERB_RPC_FAST_ARMOR FastArmor;
+            PKERB_ENCRYPTION_KEY ArmorKey;
+        } BuildFastArmoredKdcRequest;
+        typedef struct {
+            LONG RequestNonce;
+            PKERB_ASN1_DATA InputKerbError;
+            PKERB_ENCRYPTION_KEY ArmorKey;
+        } DecryptFastArmoredKerbError;
+        typedef struct {
+            PKERB_ASN1_DATA KdcRequest;
+            PKERB_ASN1_DATA KdcReply;
+            PKERB_ENCRYPTION_KEY ArmorKey;
+        } DecryptFastArmoredAsReply;
+        typedef struct {
+            PKERB_ENCRYPTION_KEY Key;
+            ULONG Version;
+            ULONG EncryptionType;
+            ULONG DataSize;
+            PUCHAR Data;
+        } DecryptPacCredentials;
+        typedef struct {
+            ULONG KeyBitLen;
+        } CreateECDHKeyAgreement;
+        typedef struct {
+            UCHAR Ignored;
+        } CreateDHKeyAgreement;
+        typedef struct {
+            KEY_AGREEMENT_HANDLE KeyAgreementHandle;
+        } DestroyKeyAgreement;
+        typedef struct {
+            LONGLONG KeyAgreementHandle;
+        } KEY_AGREEMENT_HANDLE;
+        typedef struct {
+            PKEY_AGREEMENT_HANDLE KeyAgreementHandle;
+            ULONG KerbEType;
+            ULONG RemoteNonceLen;
+            PBYTE RemoteNonce;
+            ULONG X509PublicKeyLen;
+            PBYTE X509PublicKey;
+        } FinalizeKeyAgreement;
+    };
+} KerbCredIsoRemoteInput, *PKerbCredIsoRemoteInput;
+}
+
+[
+    pointer_default(unique)
+]
+interface ntlmcredisoremote
+{
+    
+}

@@ -1,0 +1,5 @@
+:repo-url: https://github.com/EvanMcBroom/lsa-whisperer
+
+|===
+| `{repo-url}[Repo]` | `{repo-url}/wiki[Wiki]` | `{repo-url}/releases[Releases]`
+|===

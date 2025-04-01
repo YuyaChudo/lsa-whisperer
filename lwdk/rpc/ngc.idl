@@ -1,0 +1,64 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// A subset of the next generation cryptography (ngc) rpc servers
+//
+
+cpp_quote("// Copyright (C) 2024 Evan McBroom")
+cpp_quote("//")
+cpp_quote("// A subset of the next generation cryptography (ngc) rpc servers")
+cpp_quote("//")
+#include "ms-dtyp.idl"
+
+// NGC Service Ticket RPC Interface
+[
+    uuid("2b70bed6-1757-4d22-9f39-448589fbebf5"),
+    version(1.0),
+    pointer_default(unique)
+]
+interface NgcTicket {
+    typedef enum _NgcGestureType {
+        NgcGestureTypeInvalid = 0,
+        NgcGestureTypePIN = 1,
+        NgcGestureTypeFingerprint = 2,
+        NgcGestureTypePreboot = 4,
+        NgcGestureTypeCompanionDevice = 8
+    } NgcGestureType;
+
+    typedef struct _NGC_RPC_GESTURE_INFO {
+        NgcGestureType gestureType;
+        [unique, size_is(gestureDataByteCount)] PBYTE gestureData;
+        ULONG gestureDataByteCount;
+    } NGC_RPC_GESTURE_INFO, *PNGC_RPC_GESTURE_INFO;
+
+    NTSTATUS s_NgcTicketCreateForKeyOperations(
+        [in] handle_t binding,
+        [in] PNGC_RPC_GESTURE_INFO gestureInfo,
+        [in, unique, string] LPWSTR decryptionKeyName,
+        [in, out, unique] ULONGLONG* decryptionTicket,
+        [in, unique, string] LPWSTR signingKeyName,
+        [in, out, unique] ULONGLONG* signingTicket,
+        [in] BOOL returnGestureAuthFailure
+    );
+
+    NTSTATUS s_NgcTicketCreateForNewKey(
+        [in] handle_t binding,
+        [in] PNGC_RPC_GESTURE_INFO gestureInfo,
+        [in] GUID* containerId,
+        [out] ULONGLONG* ticket
+    );
+
+    NTSTATUS s_NgcTicketCreateForSmartCard(
+        [in] handle_t binding,
+        [in] PNGC_RPC_GESTURE_INFO gestureInfo,
+        [in, string] LPWSTR arg_2,
+        [in] int arg_3,
+        [out] ULONGLONG* ticket
+    );
+
+    NTSTATUS s_NgcTicketGetTicketFromPinCache(
+        [in] handle_t binding,
+        [in, string] LPWSTR arg_1,
+        [in] int arg_2,
+        [out] ULONGLONG* ticket
+    );
+}

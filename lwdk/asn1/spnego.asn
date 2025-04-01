@@ -1,0 +1,77 @@
+-- Copyright (C) 2024 Evan McBroom
+--
+-- [MS-SPNG]: Simple and Protected GSS-API Negotiation Mechanism (SPNEGO) Extension
+--
+-- MS-SPNG extends RFC4178:
+--   The Simple and Protected Generic Security Service Application Program Interface (GSS-API) Negotiation Mechanism
+--
+SPNEGO DEFINITIONS ::= BEGIN
+
+ContextFlags ::= BIT STRING {
+                   delegFlag (0),
+                   mutualFlag (1),
+                   replayFlag (2),
+                   sequenceFlag (3),
+                   anonFlag (4),
+                   confFlag (5),
+                   integFlag (6)
+               }
+
+InitialNegToken ::= [APPLICATION 0] IMPLICIT SEQUENCE {
+    spnegoMech     MechType,
+    negToken       NegotiationToken
+} --#public--
+
+MechSpecInfo ::= OCTET STRING
+
+MechType ::= OBJECT IDENTIFIER
+
+-- OID represents each security mechanism as suggested by [RFC2743]
+MechTypeList ::= SEQUENCE OF MechType
+
+NegHints ::= SEQUENCE {
+    hintName       [0] GeneralString OPTIONAL,
+    hintAddress    [1] OCTET STRING OPTIONAL
+}
+
+NegResult ::= ENUMERATED {
+                   accept-completed (0),
+                   accept-incomplete (1),
+                   reject (2)
+               }
+
+-- reqFlags was inherited from RFC2478 for backward compatibility, RECOMMENDED to be left out
+NegTokenInit ::= SEQUENCE {
+    mechTypes      [0] MechTypeList OPTIONAL,
+    reqFlags       [1] ContextFlags OPTIONAL,
+    mechToken      [2] OCTET STRING OPTIONAL,
+    negHints       [3] NegHints OPTIONAL,
+    mechListMIC    [4] OCTET STRING OPTIONAL
+}
+
+NegTokenInit2 ::= SEQUENCE {
+    mechTypes      [0] MechTypeList OPTIONAL,
+    reqFlags       [1] ContextFlags OPTIONAL,
+    mechToken      [2] OCTET STRING OPTIONAL,
+    negHints       [3] NegHints OPTIONAL,
+    mechListMIC    [4] OCTET STRING OPTIONAL
+}
+
+-- Named NegTokenResp in RFC
+NegTokenTarg ::= SEQUENCE {
+    negResult      [0] NegResult OPTIONAL,
+    supportedMech  [1] MechType OPTIONAL,
+    responseToken  [2] OCTET STRING OPTIONAL,
+    mechListMIC    [3] OCTET STRING OPTIONAL
+}
+
+NegotiationToken ::= CHOICE {
+    negTokenInit   [0] NegTokenInit,
+    negTokenTarg   [1] NegTokenTarg,
+    negTokenInit2  [2] NegTokenInit2
+} --#public--
+
+-- Create a top-level type using MechTypeList to enable it to be marshalled independently
+SavedMechTypeList ::= MechTypeList --#public--
+
+END

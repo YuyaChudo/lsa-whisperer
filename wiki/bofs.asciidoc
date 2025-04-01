@@ -1,0 +1,186 @@
+= BOFs
+:toc: macro
+
+A few Beacon object files (BOFs) are maintained by the LSA Whisperer project to assist with red and purple team assessment work.
+
+Please be aware that no standard BOF tooling exists and every BOF execution tool I have encountered has had implementation issues in regards to linking a COFF formatted file.
+As such, your mileage may vary depending on which BOF execution tool you use.
+Pull requests to add to or improve existing BOFs are welcome but please direct problems that are caused by an implementation issue with a BOF execution tool to the respective maintainer of that tool.
+
+Due to the various platforms that exist now for executing BOFs, there is also no standard method for defining a BOF's arguments.
+Each BOF's arguments are documented here but additional configuration files to define these arguments for a specific platform are currently not provided (ex. for Cobalt Strike or Sliver).
+These configuration files may be added in the future but their development is not a priority.
+Pull requests to add these files are welcome.
+
+toc::[]
+
+== dsrcli
+
+Run a device registration (DSR) service CLI command.
+The `dsreg` module must have an `DsrCLI` export for the BOF to succeed which will be true for Windows 11 and all newer Windows 10 releases.
+The approach for capturing output when no console is present was taken from Santiago Pecin's https://github.com/fortra/No-Consolation[No-Consolation] project.
+
+Please refer to the arguments of https://ss64.com/nt/dsregcmd.html[dsregcmd] for what commands may be issued.
+Some commands are not publicly documented but may be identified by reviewing the the implementation of the `dsreg` module.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name   | Required           | Description
+| `Z`   | Wide string | :heavy_check_mark: | All command line parameters as they would normally be formatted to use with https://ss64.com/nt/dsregcmd.html[dsregcmd]
+|===
+
+== dump_credential_key
+
+Get the credential key for the specified logon session.
+The caller must have the `SeTcbPrivilege` privilege.
+The BOF will work on nt 6.4 and higher but can be backported to NT 6.2 by calling `GetCredentialKey`.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name   | Required           | Description
+| `i`   | Integer     |                    | Logon session id
+|===
+
+== get_device_sso_cookie
+
+Get the device single sign-on (SSO) cookie for the current host.
+
+== get_ntlmv1_response
+
+Create an NTLMv1 response using a provided challenge value and the primary password of a specified logon session.
+The primary password for the machine account will be used if no logon session is specified.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name    | Required           | Description
+| `b`   | Binary data  | :heavy_check_mark: | 8 byte challenge to client
+| `i`   | Integer      |                    | Logon session id
+|===
+
+== get_pop_token
+
+Get a proof of possession (PoP) token for the current logon session.
+The BOF will work on NT 10 and higher but can be backported to NT 6.3 by submitting a `GetSignedProofOfPossessionToken` call to the livessp authentication package.
+Normally, SEH should be defined around the RPC calls to catch any issue with data serialization.
+Most BOF tooling will not handle SEH when it is present in a BOF so that is omitted from this code.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name    | Required           | Description
+| `Z`   | Wide string  | :heavy_check_mark: | Email address
+|===
+
+== get_sso_cookie
+
+Get a single sign-on (SSO) cookie for the current logon session.
+The user must have logged on with an Entra ID or AD FS account for the BOF to succeed.
+By default, an Entra ID SSO cookie will be requested which will request a cookie from `login.microsoftonline.com`.
+
+If an AD FS SSO cookie is desired, the address of the AD FS server must be specified and binary data must be supplied as a third BOF argument.
+The value of the binary data may be anything.
+Its presence is only used as a flag to the BOF to indicate that it should request an AD FS SSO cookie instead of an Entra ID cookie.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name    | Required           | Description
+| `z`   | Ascii string | :heavy_check_mark: | Nonce value
+| `z`   | Ascii string |                    | Alternative server
+| `b`   | Binary data  |                    | Request an AD FS SSO cookie
+|===
+
+== list_logon_sessions
+
+List all logon sessions on the host.
+The outputed data may be gathered with the security package manager (SPM) and other APIs, but `LsaGetLogonSessionData` is used here to simplify the BOF's development.
+
+== load_ssp
+
+Install a new security support provider (SSP) on the host.
+The call can be made with the security package manager's (SPM) `AddPackage` API which underlies `AddSecurityPackageW`, but the standard Win32 API is used here to simplify the BOF's development.
+
+By default, the SSP will be registered with the type `SECPKG_OPTIONS_TYPE_LSA`.
+If desired, another numerical type value may be provided.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name   | Required           | Description
+| `Z`   | Wide string | :heavy_check_mark: | Path to the SSP DLL
+| `i`   | Integer     |                    | Alternative SSP type
+|===
+
+== purge_tickets
+
+Purge tickets from both the Kerberos and PKU2U ticket caches.
+You may optionally filter which tickets you would like to purge by specifying a server name, server realm, client name, and client realm.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name    | Required | Description
+| `Z`   | Wide string  |          | Server name
+| `Z`   | Wide string  |          | Server Realm
+| `Z`   | Wide string  |          | Client name
+| `Z`   | Wide string  |          | Client Realm
+|===
+
+== show_cloud_config
+
+Show all cloud configuration information that may be queried for the host from the device registration (DSR) APIs.
+If the the current logon session is managed by the CloudAP or Kerberos authentication packages, then additional cloud configuration information will be shown for the current logon session.
+
+== show_domain_config
+
+Show all kerberos extended policy information for a domain.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name    | Required           | Description
+| `Z`   | Wide string  | :heavy_check_mark: | Domain name
+|===
+
+== show_kerberos_config
+
+Show all kerberos related configuration information that may be queried for the current host.
+The output does not include kerberos policy information for a specific domain or kerberos cloud information.
+That information may be acquired with either the `show_domain_config` or `show_cloud_config` BOF, respectively.
+If a logon session is specified, then additional information will be shown for that logon session's KDC proxy cache and S4U2proxy cache.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name | Required | Description
+| `i`   | Integer   |          | Logon session id
+|===
+
+== transfer_creds
+
+Submit a request to transfer credentials from one logon session to another.
+The request will be forwarded to all packages that support credential transfers, which includes CloudAP, Kerberos, MSV1_0, and Negotiate.
+Sending the request to all packages will prevent any error response from a specific package from being returned, and an error will only be returned if the initial request failed.
+The destination logon session should be inspected to verify if the transfer succeeded (ex. by checking if Kerberos tickets where transferred to the cache of the destination logon session).
+Error information from a specific package can be recovered if a request is submitted directly to the package, but that was not implemented to simplify the BOF's development.
+
+A set of flags may be supplied to change how the transfer occurs.
+These may be any combination of the `SECPKG_CALL_PACKAGE_TRANSFER_CRED_REQUEST_FLAG_*` values.
+By default, not flags will be specified.
+
+.Arguments
+[%header]
+|===
+| Type  | Type Name | Required           | Description
+| `i`   | Integer   | :heavy_check_mark: | Source logon session id
+| `i`   | Integer   | :heavy_check_mark: | Destination logon session id
+| `i`   | Integer   |                    | Transfer flag(s)
+|===
+
+== whoami
+
+Show logon information for the effective token of the current thread.
+Some of this data can be gathered with security package manager (SPM) API calls, but standard Win32 APIs are used here to simplify the BOF's development.

@@ -1,9 +1,10 @@
+// Copyright (C) 2025 Evan McBroom
 #pragma once
 #include <map>
 #include <replxx.hxx>
 
 // Internal field separator for word boundaries
-char const Ifs[]{ " \t\n\r\v\f=+*&^%$#@!,/?<>;:`~'\"[]{}()|" };
+char const Ifs[]{ " \t\n\r\v\f=+*&^%$#@,/?<>;:`~'\"[]{}()|" };
 
 class Cli : public replxx::Replxx {
 public:
@@ -11,6 +12,7 @@ public:
 
     Cli(const std::string& historyFile = "");
     void AddCommand(const std::string& name, Command command);
+    void AddModule(const std::wstring& path);
     void AddExitCommand(const std::string& name);
     void AddSubCommandCompletions(const std::string& command, const std::vector<std::string>& subCommands);
     void Start();

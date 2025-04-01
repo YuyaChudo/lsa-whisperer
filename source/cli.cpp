@@ -1,12 +1,13 @@
-﻿#include <cli.hpp>
+﻿// Copyright (C) 2025 Evan McBroom
+#include "cli.hpp"
+#include "sspi.hpp"
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <kerberos.hpp>
 #include <memory>
-#include <msv1_0.hpp>
-#include <pku2u.hpp>
 #include <replxx.hxx>
-#include <schannel.hpp>
+#include <spdlog/spdlog.h>
+#include <sstream>
 #include <thread>
 
 using Replxx = replxx::Replxx;
@@ -66,6 +67,56 @@ void Cli::AddCommand(const std::string& name, Command command) {
     });
 }
 
+void Cli::AddModule(const std::wstring& path) {
+    auto base{ reinterpret_cast<char*>(LoadLibraryW(path.c_str())) };
+    if (base) {
+        auto ntHeaders{ reinterpret_cast<PIMAGE_NT_HEADERS>(base + reinterpret_cast<PIMAGE_DOS_HEADER>(base)->e_lfanew) };
+        auto exportDirectory{ reinterpret_cast<PIMAGE_EXPORT_DIRECTORY>(base + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress) };
+        std::vector<std::string> exportNames;
+        for (size_t index{ 0 }; index < exportDirectory->NumberOfNames; index++) {
+            exportNames.emplace_back(std::string(base + reinterpret_cast<uint32_t*>(base + exportDirectory->AddressOfNames)[index]));
+        }
+        if (exportNames.size()) {
+            auto moduleName{ std::filesystem::path(path).filename().stem().string() };
+            this->commands.emplace_back("!" + moduleName, [moduleName, base, exportNames](Cli& cli, const std::string& fullInput) {
+                // Remove the module name and any leading spaces from the argument string
+                auto input{ std::string(fullInput.begin() + std::strlen(moduleName.data()) + 1, fullInput.end()) };
+                input.erase(input.begin(), std::find_if(input.begin(), input.end(), [](unsigned char ch) {
+                    return !std::isspace(ch);
+                }));
+                if (!input.size()) {
+                    std::cout << "Module commands: ";
+                    std::cout << exportNames[0];
+                    for (size_t index{ 1 }; index < exportNames.size(); index++) {
+                        std::cout << ", " << exportNames[index];
+                    }
+                    std::cout << std::endl;
+                } else {
+                    auto position{ input.find(' ') };
+                    std::string commandName{ (position == std::string::npos) ? input : std::string(input.begin(), input.begin() + position) };
+                    if (std::find(exportNames.begin(), exportNames.end(), commandName) != exportNames.end()) {
+                        auto command{ reinterpret_cast<int (*)(int, char**)>(GetProcAddress(reinterpret_cast<HMODULE>(base), commandName.c_str())) };
+                        // Tokenize the user's input
+                        std::istringstream inputStream{ input };
+                        std::vector<std::string> tokens;
+                        std::copy(std::istream_iterator<std::string>(inputStream), std::istream_iterator<std::string>(), std::back_inserter(tokens));
+                        // Construct an equivalent to argv
+                        std::vector<char*> argv;
+                        std::for_each(tokens.begin(), tokens.end(), [&argv](const std::string& arg) {
+                            argv.push_back(const_cast<char*>(arg.data()));
+                        });
+                        command(argv.size(), argv.data());
+                    } else {
+                        spdlog::error("{} is not a valid module command.", commandName);
+                    }
+                }
+                return true;
+            });
+            this->AddSubCommandCompletions("!" + moduleName, exportNames);
+        }
+    }
+}
+
 void Cli::AddExitCommand(const std::string& name) {
     this->commands.emplace_back(name, [](Cli& cli, const std::string& arg) {
         return false;
@@ -96,7 +147,7 @@ void Cli::Start() {
             return item.first.compare(name) == 0;
         }) };
         if (item == this->commands.end()) {
-            std::cout << "Command not found" << std::endl;
+            spdlog::error("Command not found.");
         } else if (!item->second(*this, input)) {
             // Handle if the command notified to end the repl
             break;

@@ -1,0 +1,160 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// Wlid credentialbag, modernapi, and propertybag serializations
+//
+
+cpp_quote("// Copyright (C) 2024 Evan McBroom")
+cpp_quote("//")
+cpp_quote("// Wlid credentialbag, modernapi, and propertybag serializations")
+cpp_quote("//")
+
+#include "ms-dtyp.idl"
+
+[
+    pointer_default(unique)
+]
+interface modernapi
+{
+typedef enum _ModernIdentityType {
+  UserIdentityType = 0,
+  UserHostIdentityType = 1,
+} ModernIdentityType, *PModernIdentityType;
+
+typedef struct _ModernAppToken {
+    LONGLONG createTime;
+    LONGLONG expireTime;
+    ULONG flags;
+    PWCHAR pToken;
+    PWCHAR pTargetUri;
+    PWCHAR pPolicy;
+} ModernAppToken, *PModernAppToken;
+
+typedef struct _ModernAppTokenBag {
+    ULONG tokenCount;
+    PModernAppToken pTokenArray;
+} ModernAppTokenBag, *PModernAppTokenBag;
+
+typedef struct _ModernIdentityProperty {
+    PWCHAR pName;
+    PWCHAR pvalue;
+} ModernIdentityProperty, *PModernIdentityProperty;
+
+typedef struct _ModernIdentityPropertyBag {
+    ULONG propertyCount;
+    PModernIdentityProperty pPropertyArray;
+} ModernIdentityPropertyBag, *PModernIdentityPropertyBag;
+}
+
+[
+	pointer_default(unique)
+]
+interface credentialbag
+{
+typedef enum _WLIDCredentialAttribute {
+    WLIDCredentialAttributeInvalid = 0,
+    WLIDCredentialAttributePassword = 1,
+    WLIDCredentialAttributeEid = 2,
+    WLIDCredentialAttributePin = 3,
+    WLIDCredentialAttributeActive = 4,
+    WLIDCredentialAttributeVirtualAppPrefix = 5,
+    WLIDCredentialAttributeMemberName = 6,
+    WLIDCredentialAttributeSingelUseCode = 7,
+    WLIDCredentialAttributeDAToken = 8,
+    WLIDCredentialAttributeDAExpiryTime = 9,
+    WLIDCredentialAttributeDACreationTime = 10,
+    WLIDCredentialAttributeDASessionKey = 11,
+    WLIDCredentialAttributeFlowToken = 12,
+    WLIDCredentialAttributeNGCKeyName = 13,
+    WLIDCredentialAttributeNGCAuthTicket = 14,
+} WLIDCredentialAttribute, *PWLIDCredentialAttribute;
+
+typedef enum _WLIDCredentialsType {
+    WLIDCredentialTypeUnknown = 0,
+    WLIDCredentialTypePassword = 1,
+    WLIDCredentialTypeSmartCard = 2,
+    WLIDCredentialTypePasswordAndDAToken = 3,
+    WLIDCredentialTypeDAToken = 4,
+    WLIDCredentialTypeNGC = 5,
+    WLIDCredentialTypeNGCAndDAToken = 6,
+    WLIDCredentialTypeNGCAndAuthTicket = 7,
+} WLIDCredentialsType, *PWLIDCredentialsType;
+
+typedef struct _WLIDCredentialString {
+    ULONG length;
+    PWCHAR pBuffer;
+} WLIDCredentialString, *PWLIDCredentialString;
+
+typedef struct _WLIDCredential {
+    WLIDCredentialAttribute credentialAttribute;
+    WLIDCredentialString value;
+} WLIDCredential, *PWLIDCredential;
+
+typedef struct _WLIDCredentialBag {
+    WLIDCredentialsType credType;
+    DWORD dwCount;
+    [unique, size_is(dwCount)] PWLIDCredential arrCredentials;
+} WLIDCredentialBag, *PWLIDCredentialBag;
+}
+
+[
+	pointer_default(unique)
+]
+interface wlidpropertybag
+{
+typedef enum _ProofOfPossessionTokenType {
+    UserToken = 0,
+    DeviceToken = 1,
+} ProofOfPossessionTokenType, *PProofOfPossessionTokenType;
+
+typedef struct _ProofOfPossessionTokenData {
+    [unique, string] PCHAR pName;
+    [unique, string] PCHAR pUrl;
+    [unique, string] PCHAR pP3pHeader;
+    [unique, string] PCHAR pTokenData;
+    ULONG flags;
+    ProofOfPossessionTokenType tokenType;
+} ProofOfPossessionTokenData, *PProofOfPossessionTokenData;
+
+cpp_quote("/// <summary>")
+cpp_quote("/// The old format of of ProofOfPossessionTokenData which is used on NT 6.1.")
+cpp_quote("/// </summary>")
+typedef struct _ProofOfPossessionTokenDataOld {
+    [unique, string] PWCHAR pName;
+    [unique, string] PWCHAR pUrl;
+    [unique, string] PWCHAR pP3pHeader;
+    [unique, string] PWCHAR pTokenData;
+    ULONG flags;
+    ProofOfPossessionTokenType tokenType;
+} ProofOfPossessionTokenDataOld, *PProofOfPossessionTokenDataOld;
+
+typedef struct _ProofOfPossessionTokenBag {
+    ULONG tokenCount;
+    [unique, size_is(tokenCount)] PProofOfPossessionTokenData pTokenArray;
+} ProofOfPossessionTokenBag, *PProofOfPossessionTokenBag;
+
+cpp_quote("/// <summary>")
+cpp_quote("/// The old format of of ProofOfPossessionTokenBag which is used on NT 6.1.")
+cpp_quote("/// </summary>")
+typedef struct _ProofOfPossessionTokenBagOld {
+    ULONG tokenCount;
+    [unique, size_is(tokenCount)] PProofOfPossessionTokenDataOld pTokenArray;
+} ProofOfPossessionTokenBagOld, *PProofOfPossessionTokenBagOld;
+
+typedef struct _UnsignedProofOfPossessionTokenParameter {
+    ProofOfPossessionTokenData token;
+    ULONG sessionKeyType;
+    ULONG sessionKeyLength;
+    ULONG timeSkew;
+    PBYTE pSessionKey;
+} UnsignedProofOfPossessionTokenParameter, *PUnsignedProofOfPossessionTokenParameter;
+
+typedef struct _WlidProperty {
+    LONG dataSize;
+    [unique, size_is(dataSize)] PBYTE pData;
+} WlidProperty, *PWlidProperty;
+
+typedef struct _WlidPropertyBag {
+    LONG propertyCount;
+    [unique, size_is(propertyCount)] PWlidProperty pPropertyArray;
+} WlidPropertyBag, *PWlidPropertyBag;
+}

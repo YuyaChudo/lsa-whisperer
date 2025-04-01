@@ -1,6 +1,7 @@
 ifdef::env-github[]
 :note-caption: :pencil2:
 endif::[]
+:wiki-url: https://github.com/EvanMcBroom/lsa-whisperer/wiki
 
 = Command Usage
 
@@ -16,13 +17,13 @@ History may also not be saved by using the `--no-history` argument.
 Users may specify commands to execute directly from the command line.
 Specifying one or more commands this way will start the tool in a non-interactive mode.
 In this mode the tool will execute each command the user specified and display the corresponding results.
-A full list of commands the tool supports is documented on individual wiki pages but a small list is provided in the https://github.com/EvanMcBroom/lsa-whisperer/wiki/Usage#example-usage[Example Usage] section.
+A full list of commands the tool supports is documented on individual wiki pages but a small list is provided in the {wiki-url}/usage#example-usage[Example Usage] section.
 The only commands that are not supported in non-interactive mode are the meta commands.
 
 == Meta Commands
 
 LSA Whisperer supports some commands unrelated to interacting with SSPs to make using the tool easier.
-These are called meta commands and are prefixed by a period (ex. `.token`).
+These are called meta commands and are prefixed by a period (ex. `.clear`).
 A brief overview of these commands is provided below.
 
 .Meta Commands
@@ -33,14 +34,22 @@ A brief overview of these commands is provided below.
 | `.exit`               | Cleanly exit from the tool
 | `.help`               | Show a link to the project's wiki for detailed help information
 | `.history`            | Show what commands have previously been ran
-| `.nonce`              | Request a nonce that may be used with the cloudap commands and https://github.com/dirkjanm/ROADtools/wiki/ROADtools-Token-eXchange-(roadtx)[roadtx]
+| `.log_level`          | View or modify the current logging level for console output
 | `.quit`               | Cleanly exit from the tool
-| `.token Impersonate`  | Impersonate a Window Station session
-| `.token RevertToSelf` | Revert to your original user
-| `.token SetPrivilege` | Enable and disable a privilege for your primary token
-| `.token WhoAmi`       | Show your current user
 |===
 
+== Module Commands
+
+LSA Whisperer comes with additional commands that are implemented in seperate DLLs.
+These are called module commands and are prefixed by an exclamation point (ex. `!token`).
+Module commands allow the tool to provide useful functionality for technologies that are related to LSA while visible distinguishing them (e.g. with a `!`) from the built in commands that interact directly with an LSA API.
+Each module has a wiki page describing their purpose and the commands they implement.
+
+== Beacon Object Files
+
+Beacon object files (BOFs) are commonly used for red and purple team assessments.
+Although not the focus of the LSA Whisperer project, several BOFs are maintained to assist users with this work.
+Please refer to the dedicated wiki page on BOFs for more guidance on their usage.
 
 == Example Usage
 

@@ -1,0 +1,35 @@
+-- Copyright (C) 2024 Evan McBroom
+--
+-- RFC2743: Generic Security Service Application Program Interface Version 2, Update 1
+--
+GSSAPI DEFINITIONS ::= BEGIN
+
+-- data structure definitions
+-- callers must be able to distinguish among
+-- InitialContextToken, SubsequentContextToken,
+-- PerMsgToken, and SealedMessage data elements
+-- based on the usage in which they occur
+MechType ::= OBJECT IDENTIFIER
+
+-- option indication (delegation, etc.) indicated within
+-- mechanism-specific token
+InitialContextToken ::= [APPLICATION 0] IMPLICIT SEQUENCE {
+    thisMech MechType,
+    innerToken ANY DEFINED BY thisMech
+}
+
+-- interpretation based on predecessor InitialContextToken
+-- ASN.1 structure not required
+SubsequentContextToken ::= ANY
+
+-- as emitted by GSS_GetMIC and processed by GSS_VerifyMIC
+-- ASN.1 structure not required
+PerMsgToken ::= ANY
+
+-- as emitted by GSS_Wrap and processed by GSS_Unwrap
+-- includes internal, mechanism-defined indicator
+-- of whether or not encrypted
+-- ASN.1 structure not required
+SealedMessage ::= ANY
+
+END

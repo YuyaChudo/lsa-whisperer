@@ -1,0 +1,66 @@
+// Copyright (C) 2024 Evan McBroom
+//
+LIBRARY NTASN1
+
+EXPORTS
+    RtlAsn1Encode                    @1
+    RtlAsn1EncodeAndAllocate         @2
+    RtlAsn1Decode                    @3
+    RtlAsn1DecodeAndAllocate         @4
+    RtlAsn1GetModuleHandle           @5
+    ASN1_FindOidInfo                 @6
+    ASN1_FindOidInfoByEoid           @7
+    CryptEncodeObjectEx              @8
+    CryptDecodeObjectEx              @9
+    ASN1_DecodeObject                @10
+    ASN1_EncodeObject                @11
+    ASN1_FindObjectEntry             @12
+    // Ordinal @13 was removed from release builds
+    ASN1DER_EncLength32              @14
+    ASN1DER_EncTag                   @15
+    ASN1DER_EncExplicitTag           @16
+    ASN1DER_EncUnsignedInteger32     @17
+    ASN1DER_EncCanonicalInteger      @18
+    ASN1DER_EncInteger               @19
+    ASN1DER_EncNull                  @20
+    ASN1DER_EncBool                  @21
+    ASN1DER_EncOctetString           @22
+    ASN1DER_EncCanonicalBitString    @23
+    ASN1DER_EncBitString             @24
+    ASN1DER_EncChar16String          @25
+    ASN1DER_EncChar32String          @26
+    ASN1DER_EncChar32StringW         @27
+    ASN1DER_EncChar8StringA          @28
+    ASN1DER_EncChar8StringW          @29
+    ASN1DER_EncUTF8String            @30
+    ASN1DER_EncObjectIdentifierStr   @31
+    ASN1DER_EncSystemTimeGeneralized @32
+    ASN1DER_EncFileTimeGeneralized   @33
+    ASN1DER_EncSystemTimeUTC         @34
+    ASN1DER_EncFileTimeUTC           @35
+    ASN1DER_DecLength32              @36
+    ASN1DER_DecTagLength             @37
+    ASN1DER_DecPeekTag               @38
+    ASN1DER_DecTag                   @39
+    ASN1DER_DecExplicitTag           @40
+    ASN1DER_DecSequenceOfAny         @41
+    ASN1DER_DecInteger32             @42
+    ASN1DER_DecMultiByteInteger      @43
+    ASN1DER_DecNull                  @44
+    ASN1DER_DecBool                  @45
+    ASN1DER_DecChar16String          @46
+    ASN1DER_DecChar32String          @47
+    ASN1DER_DecChar32StringW         @48
+    ASN1DER_DecChar8StringA          @49
+    ASN1DER_DecChar8StringW          @50
+    ASN1DER_DecUTF8String            @51
+    ASN1DER_DecOctetString           @52
+    ASN1DER_DecBitString             @53
+    ASN1DER_DecObjectIdentifierStr   @54
+    ASN1DER_DecFileTime              @55
+    ASN1DER_DecFileTimeGeneralized   @56
+    ASN1DER_DecFileTimeUTC           @57
+    ASN1DER_EncodedOIDToDotValA      @58
+    ASN1DER_EncodedOIDToDotValW      @59
+    ASN1BER_DecTagLength             @60
+    ASN1BER_DecExplicitTag           @61

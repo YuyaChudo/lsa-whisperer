@@ -1,0 +1,75 @@
+= WLID
+:toc: macro
+
+The Windows Live ID (WLID) RPC interface is hosted by the Microsoft Account Sign-in Assistant service.
+The WLID RPC interface and the CloudAP plugin APIs are used together by Microsoft to build all the other token related APIs that are supported on Windows.
+Due to its significance with investigating token related issues, `!wlid` commands are provided to make it easy to interact with the RPC interface.
+
+The `!wlid` commands are currently only supported for the most recent release of Windows 10.
+Microsoft introduced multiple breaking changes to the RPC interface on Windows 11 which cause the `!wlid` commands to fail.
+Introducing breaking changes to an RPC interface goes against RPC programming best practices but it is the reality that must be accounted for before Windows 11 may be supported.
+That support is planned, but my recommendation to other developers to base any similar code they author off of the `wlidcli` module exports to avoid these issues.
+
+toc::[]
+
+== Commands
+
+=== config
+
+Show the current running configuration parameters for the WLID RPC service.
+
+```
+!wlid config
+```
+
+=== get_token
+
+WARNING: This command is still in development and is likely to fail.
+
+Request a new token for a specified cloud service.
+The email address of a target user account must be specified.
+If a user is currently logged into an application using a Live ID user account, a usable email address for their account may be acquired by using the `!wlid handles` command.
+If no service target is specified, then the substrate service for Microsoft Office will be used.
+The token will be XML encoded if requested, otherwise it will be returned as a string.
+
+```
+!wlid get_token [-h] [--target <target>] [--policy <policy>] [--method <method>] [--xml] --user <email>
+```
+
+=== handles
+
+Show information about all school, work, Microsoft Office, or other Live ID user accounts that are currently logged in on a desktop application for the current logon session.
+LSA Whisperer must be ran as a high integrity process or higher for the command to succeed.
+If no handle information is returned, the most common cause is either due to LSA Whisperer not being ran as a high integrity process or due to no Live ID user account being currently logged in on a running desktop application.
+
+```
+!wlid handles
+```
+
+=== nonce
+
+Acquire a nonce from `login.microsoftonline.com` with a grant type of `srv_challenge` for use with an OAuth 2.0 flow.
+Although the `nonce` command is currently maintained within the `!wlid` module, it may also be used with any of the `cloudap` commands for acquiring a SSO cookie.
+
+```
+!wlid nonce
+```
+
+=== tbcache
+
+Show all cookies that are currently stored in the TokenBroker cache, which is located at `%LOCALAPPDATA%\Microsoft\TokenBroker\Cache`.
+The TokenBroker cache is managed by the TokenBroker service but it is directly used by the WLID RPC server and other Windows technologies.
+The `tbcache` command is currently maintained within the `!wlid` module due to the tight coupling it has with the WLID RPC service.
+
+```
+!wlid tbcache
+```
+
+=== tokens
+
+Show several device and user related tokens that may acquired from the WLID RPC service for authenticating to cloud services.
+If LSA Whisperer is ran as a high integrity process or higher, then tokens for user accounts that are currently logged in on a desktop application will also be shown. 
+
+```
+!wlid tokens
+```

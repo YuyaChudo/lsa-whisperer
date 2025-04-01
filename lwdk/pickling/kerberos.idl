@@ -1,0 +1,129 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// Kerberos legacycredkey and pac serializations
+//
+
+cpp_quote("// Copyright (C) 2024 Evan McBroom")
+cpp_quote("//")
+cpp_quote("// Kerberos legacycredkey and pac serializations")
+cpp_quote("//")
+
+#include "ms-dtyp.idl"
+
+[
+	pointer_default(unique)
+]
+interface pac
+{
+cpp_quote("#if defined(__midl)")
+#define MSV1_0_OWF_PASSWORD_LENGTH 16
+#define MSV1_0_SHA_PASSWORD_LENGTH 20
+#define MSV1_0_CREDENTIAL_KEY_LENGTH 20
+
+typedef enum _MSV1_0_CREDENTIAL_KEY_TYPE {
+  InvalidCredKey = 0,
+  DeprecatedIUMCredKey = 1,
+  DomainUserCredKey = 2,
+  LocalUserCredKey = 3,
+  ExternallySuppliedCredKey = 4,
+} MSV1_0_CREDENTIAL_KEY_TYPE, *PMSV1_0_CREDENTIAL_KEY_TYPE;
+
+typedef struct _MSV1_0_CREDENTIAL_KEY {
+    UCHAR Data[MSV1_0_CREDENTIAL_KEY_LENGTH];
+} MSV1_0_CREDENTIAL_KEY, *PMSV1_0_CREDENTIAL_KEY;
+
+typedef struct _MSV1_0_SUPPLEMENTAL_CREDENTIAL_V3 {
+    ULONG Version;
+    ULONG Flags;
+    MSV1_0_CREDENTIAL_KEY_TYPE CredentialKeyType;
+    UCHAR NtPassword[MSV1_0_OWF_PASSWORD_LENGTH];
+    MSV1_0_CREDENTIAL_KEY CredentialKey;
+    UCHAR ShaPassword[MSV1_0_SHA_PASSWORD_LENGTH];
+} MSV1_0_SUPPLEMENTAL_CREDENTIAL_V3, *PMSV1_0_SUPPLEMENTAL_CREDENTIAL_V3;
+cpp_quote("#else")
+cpp_quote("#include \"um/ntsecapi.h\"")
+cpp_quote("#endif")
+}
+
+[
+	pointer_default(unique)
+]
+interface pac
+{
+
+typedef struct _PAC_SID_AND_ATTRIBUTES {
+    PSID Sid;
+    ULONG Attributes;
+} PAC_SID_AND_ATTRIBUTES, * PPAC_SID_AND_ATTRIBUTES;
+
+typedef struct _PAC_LUID_AND_ATTRIBUTES {
+    LUID Luid;
+    ULONG Attributes;
+} PAC_LUID_AND_ATTRIBUTES, * PPAC_LUID_AND_ATTRIBUTES;
+
+typedef struct _PAC_TOKEN_GROUPS {
+    ULONG GroupCount;
+    [size_is(GroupCount)]
+    PAC_SID_AND_ATTRIBUTES Groups[*];
+} PAC_TOKEN_GROUPS, *PPAC_TOKEN_GROUPS;
+
+typedef struct _PAC_TOKEN_PRIVILEGES {
+    ULONG PrivilegeCount;
+    [size_is(PrivilegeCount)]
+    PAC_LUID_AND_ATTRIBUTES Privileges[*];
+} PAC_TOKEN_PRIVILEGES, *PPAC_TOKEN_PRIVILEGES;
+
+typedef struct _KERB_TOKEN_RESTRICTIONS {
+    ULONG Flags;
+    PPAC_TOKEN_GROUPS GroupsToDisable;
+    PPAC_TOKEN_GROUPS RestrictedSids;
+    PPAC_TOKEN_PRIVILEGES PrivilegesToDelete;
+} KERB_TOKEN_RESTRICTIONS, *PKERB_TOKEN_RESTRICTIONS;
+
+struct _OLD_LARGE_INTEGER { /* Size=0x8 */
+  /* 0x0000 */ public: ULONG LowPart;
+  /* 0x0004 */ public: LONG HighPart;
+};
+
+struct _UNICODE_STRING { /* Size=0x10 */
+  /* 0x0000 */ public: USHORT Length;
+  /* 0x0002 */ public: USHORT MaximumLength;
+  /* 0x0008 */ public: PWCHAR Buffer;
+};
+
+struct _NETLOGON_VALIDATION_SAM_INFO3 {
+    _OLD_LARGE_INTEGER LogonTime;
+    _OLD_LARGE_INTEGER LogoffTime;
+    _OLD_LARGE_INTEGER KickOffTime;
+    _OLD_LARGE_INTEGER PasswordLastSet;
+    _OLD_LARGE_INTEGER PasswordCanChange;
+    _OLD_LARGE_INTEGER PasswordMustChange;
+    UNICODE_STRING EffectiveName;
+    UNICODE_STRING FullName;
+    UNICODE_STRING LogonScript;
+    UNICODE_STRING ProfilePath;
+    UNICODE_STRING HomeDirectory;
+    UNICODE_STRING HomeDirectoryDrive;
+    USHORT LogonCount;
+    USHORT BadPasswordCount;
+    ULONG UserId;
+    ULONG PrimaryGroupId;
+    ULONG GroupCount;
+    _GROUP_MEMBERSHIP* GroupIds;
+    ULONG UserFlags;
+    _USER_SESSION_KEY UserSessionKey;
+    _UNICODE_STRING LogonServer;
+    _UNICODE_STRING LogonDomainName;
+    PVOID LogonDomainId;
+    ULONG ExpansionRoom[10];
+    ULONG SidCount;
+    _NETLOGON_SID_AND_ATTRIBUTES* ExtraSids;
+    PVOID ResourceGroupDomainSid;
+    ULONG ResourceGroupCount;
+    _GROUP_MEMBERSHIP* ResourceGroupIds;
+};
+
+typedef NETLOGON_VALIDATION_SAM_INFO3 PAC_IDL_VALIDATION_INFO, *PPAC_IDL_VALIDATION_INFO;
+typedef SECPKG_SUPPLEMENTAL_CRED_ARRAY PAC_IDL_CREDENTIAL_DATA, *PPAC_IDL_CREDENTIAL_DATA;
+typedef S4U_DELEGATION_INFO PAC_IDL_S4U_DELEGATION_INFO, *PPAC_IDL_S4U_DELEGATION_INFO;
+}

@@ -1,0 +1,10 @@
+target_sources(lwdk PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/cssp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/gssapi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/krb5.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ldap.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/pkcs12.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/rdpear.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/spnego.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/x509.c
+)

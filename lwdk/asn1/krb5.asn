@@ -1,0 +1,995 @@
+-- Copyright (C) 2024 Evan McBroom
+--
+-- This document defines types as they exist in the Kerberos code for Windows.
+-- Types defined in RFCs that are missing from this document were not included
+-- because at the time of its writing they were not identified to be used in
+-- Windows. Deviations from RFCs in how a type or its member are named is also
+-- done to align with how the types are named in Windows itself. The defined
+-- types relate to the following documents:
+--   [MS-KILE]: Kerberos Protocol Extensions
+--   [MS-KKDCP]: Kerberos Key Distribution Center (KDC) Proxy Protocol
+--   [MS-PKCA]: Public Key Cryptography for Initial Authentication (PKINIT) in Kerberos Protocol
+--   [MS-SFU]: Kerberos Protocol Extensions: Service for User and Constrained Delegation Protocol
+--   RFC6113: A Generalized Framework for Kerberos Pre-Authentication
+--   RFC6806: Kerberos Principal Name Canonicalization and Cross-Realm Referrals
+--   draft-zhu-pku2u-09.txt: Public Key Cryptography Based User-to-User Authentication
+--
+-- MS-KILE extends RFC4120: The Kerberos Network Authentication Service (V5)
+-- MS-KKDCP extends the following RFCs and RFC drafts:
+--   RFC1510: The Kerberos Network Authentication Service (V5)
+--     Although Microsoft takes much of its type definitions from the newer
+--     RFC4120 specification, it still takes some of its definitions from RFC1510.
+--   RFC3244: Microsoft Windows 2000 Kerberos Change Password and Set Password Protocols
+--   RFC4120: The Kerberos Network Authentication Service (V5)
+--   draft-zhu-kerb-enctype-nego-03.txt
+-- MS-PKCA extends the following RFCs:
+--   RFC5349: Elliptic Curve Cryptography (ECC) Support for Public Key Cryptography for Initial Authentication in Kerberos (PKINIT)
+--   RFC4556: Public Key Cryptography for Initial Authentication in Kerberos (PKINIT)
+--   RFC4557: Online Certificate Status Protocol (OCSP) Support for Public Key Cryptography for Initial Authentication in Kerberos (PKINIT)
+--   RFC8070: Public Key Cryptography for Initial Authentication in Kerberos (PKINIT) Freshness Extension
+-- Although MS-PKCA extends the PKINIT RFC, but Microsoft still uses types from several of its previous drafts.
+-- The most up to date draft with a matching type to what Microsoft still uses is listed here:
+--   draft-ietf-cat-kerberos-pk-init-06.txt
+--   draft-ietf-cat-kerberos-pk-init-07.txt
+--   draft-ietf-cat-kerberos-pk-init-13.txt
+--   draft-ietf-cat-kerberos-pk-init-16.txt
+--   draft-ietf-cat-kerberos-pk-init-19.txt
+-- draft-zhu-pku2u-09.txt is the most current PKU2U RFC draft at the time of this writing,
+-- but Microsoft still uses its types from one of its previous drafts:
+--   draft-swift-win2k-krb-user2user-01.txt
+--
+KRB5 DEFINITIONS EXPLICIT TAGS ::= BEGIN
+
+-- RFC4120: The Kerberos Network Authentication Service (V5)
+
+-- RFC4120: 5.2.  Basic Kerberos Types
+
+-- RFC4120: 5.2.2.  Realm and PrincipalName
+
+KERB-REALM ::= GeneralString
+
+KERB-REALM-CACHE-ENTRY ::= SEQUENCE { -- Could not locate in an RFC, but likely appropriate to define here
+    realm       [0] GeneralString,
+    access-time [1] GeneralizedTime
+}
+
+KERB-REALM-CACHE ::= SEQUENCE OF KERB-REALM-CACHE-ENTRY --#public-- -- Could not locate in an RFC, but likely appropriate to define here
+
+KERB-PRINCIPAL-NAME ::= SEQUENCE {
+    name-type      [0] INTEGER,
+    name-string    [1] SEQUENCE OF GeneralString
+} --#public--
+
+-- RFC4120: 5.2.3.  KerberosTime
+
+KERB-TIME ::= GeneralizedTime -- Specifying UTC time zone (Z)
+
+-- RFC4120: 5.2.4.  Constrained Integer Types
+
+KERB-SEQUENCE-NUMBER-LARGE ::= INTEGER (-2147483648..4294967295)
+
+KERB-SEQUENCE-NUMBER ::= INTEGER (0..4294967295)
+
+-- RFC4120: 5.2.5.  HostAddress and HostAddresses
+
+KERB-HOST-ADDRESS ::= SEQUENCE {
+    addr-type      [0] INTEGER,
+    address        [1] OCTET STRING
+}
+
+-- As defined in RFC1510, not RFC4120
+PKERB-HOST-ADDRESSES ::= SEQUENCE OF SEQUENCE {
+    addr-type      [0] INTEGER, -- Originally named address-type
+    address        [1] OCTET STRING
+} --#public--
+
+-- RFC4120: 5.2.6.  AuthorizationData
+
+-- Member names deviate slightly from public RFCs
+PKERB-AUTHORIZATION-DATA ::= SEQUENCE OF SEQUENCE {
+    auth-data-type [0] INTEGER,
+    auth-data      [1] OCTET STRING
+} --#public--
+
+-- A list of auth data for separate packing
+PKERB-AUTHORIZATION-DATA-LIST ::= PKERB-AUTHORIZATION-DATA --#public--
+
+KERB-KDC-ISSUED-AUTH-DATA ::= SEQUENCE { -- Originally named AD-KDCIssued in RFC. Microsoft's type is also missing the i-realm and i-sname members
+    checksum                [0] KERB-SIGNATURE,
+    elements                [1] SEQUENCE OF KERB-PA-DATA
+} --#public--
+
+-- RFC4120: 5.2.6.1.  IF-RELEVANT
+
+PKERB-IF-RELEVANT-AUTH-DATA ::= PKERB-AUTHORIZATION-DATA --#public--
+
+-- RFC4120: 5.2.7.  PA-DATA
+
+KERB-PA-DATA ::= SEQUENCE {
+    -- NOTE: first tag is [1], not [0]
+    preauth-data-type [1] INTEGER,
+    preauth-data   [2] OCTET STRING -- might be encoded AP-REQUEST
+}
+
+PKERB-PREAUTH-DATA-LIST ::= SEQUENCE OF KERB-PA-DATA --#public--
+
+-- RFC4120: 5.2.7.2.  Encrypted Timestamp Pre-authentication
+
+KERB-ENCRYPTED-TIMESTAMP ::= SEQUENCE {
+    timestamp      [0] KERB-TIME, -- client's time
+    usec           [1] INTEGER OPTIONAL
+} --#public--
+
+-- RFC4120: 5.2.7.4.  PA-ETYPE-INFO
+
+KERB-ETYPE-INFO-ENTRY ::= SEQUENCE {
+    encryption-type [0] INTEGER,
+    salt           [1] OCTET STRING OPTIONAL
+}
+
+PKERB-ETYPE-INFO ::= SEQUENCE OF KERB-ETYPE-INFO-ENTRY --#public--
+
+-- 5.2.7.5.  PA-ETYPE-INFO2
+
+ETYPE-INFO2-ENTRY ::= SEQUENCE {
+    etype           [0] INTEGER,
+    salt            [1] GeneralString OPTIONAL,
+    s2kparams       [2] OCTET STRING OPTIONAL
+}
+
+ETYPE-INFO2 ::= SEQUENCE SIZE (1..MAX) OF ETYPE-INFO2-ENTRY --#public--
+
+-- RFC4120: 5.2.8.  KerberosFlags
+
+KERB-KDC-OPTIONS ::= BIT STRING
+
+-- RFC4120: 5.2.9.  Cryptosystem-Related Types
+
+KERB-ENCRYPTED-DATA ::= SEQUENCE {
+    encryption-type [0] INTEGER, -- EncryptionType
+    version        [1] INTEGER OPTIONAL,
+    cipher-text    [2] OCTET STRING -- CipherText
+} --#public--
+
+EncryptedData ::= KERB-ENCRYPTED-DATA
+
+-- Originally named in Microsoft sources as KERB-ENCRYPTION-KEY-ASN1,
+-- but Microsoft later had to rename the type because they introduced
+-- a conflicting type with the same name in their kerberos package
+-- header files.
+KERB-ENCRYPTION-KEY-ASN1 ::= SEQUENCE {
+    keytype        [0] INTEGER,
+    keyvalue       [1] OCTET STRING
+} --#public--
+
+EncryptionKey ::= KERB-ENCRYPTED-DATA
+
+KERB-CHECKSUM ::= SEQUENCE {
+    checksum-type  [0] INTEGER,
+    checksum       [1] OCTET STRING
+} --#public--
+
+-- RFC4120: 5.3.  Tickets
+
+KERB-TICKET ::= [APPLICATION 1] SEQUENCE {
+    ticket-version [0] INTEGER,
+    realm          [1] KERB-REALM,
+    server-name    [2] KERB-PRINCIPAL-NAME,
+    encrypted-part [3] KERB-ENCRYPTED-DATA, -- EncTicketPart
+    ticket-extensions [4] PKERB-TICKET-EXTENSIONS OPTIONAL
+} --#public--
+
+KERB-ENCRYPTED-TICKET ::= [APPLICATION 3] SEQUENCE {
+    flags          [0] KERB-TICKET-FLAGS,
+    key            [1] KERB-ENCRYPTION-KEY-ASN1,
+    client-realm   [2] KERB-REALM,
+    client-name    [3] KERB-PRINCIPAL-NAME,
+    transited      [4] KERB-TRANSITED-ENCODING,
+    authtime       [5] KERB-TIME,
+    starttime      [6] KERB-TIME OPTIONAL,
+    endtime        [7] KERB-TIME,
+    renew-until    [8] KERB-TIME OPTIONAL,
+    client-addresses [9] PKERB-HOST-ADDRESSES OPTIONAL,
+    authorization-data [10] PKERB-AUTHORIZATION-DATA OPTIONAL
+} --#public--
+
+KERB-TRANSITED-ENCODING ::= SEQUENCE {
+    transited-type [0] INTEGER, -- Only supported value is 1 == DOMAIN-COMPRESS
+    contents       [1] OCTET STRING
+}
+
+KERB-TICKET-FLAGS ::= BIT STRING
+
+-- RFC4120: 5.4.  Specifications for the AS and TGS Exchanges
+
+-- RFC4120: 5.4.1.  KRB_KDC_REQ Definition
+
+KERB-AS-REQUEST ::= [APPLICATION 10] KERB-KDC-REQUEST --#public--
+
+KERB-TGS-REQUEST ::= [APPLICATION 12] KERB-KDC-REQUEST --#public--
+
+KERB-KDC-REQUEST ::= SEQUENCE {
+    version        [1] INTEGER,
+    message-type   [2] INTEGER,
+    preauth-data   [3] SEQUENCE OF KERB-PA-DATA OPTIONAL,
+    request-body   [4] KERB-KDC-REQUEST-BODY
+} --#public--
+
+-- Given an application number so it can be separately encoded to calculate a checksum for it.
+KERB-MARSHALLED-REQUEST-BODY ::= KERB-KDC-REQUEST-BODY --#public--
+
+KERB-KDC-REQUEST-BODY ::= SEQUENCE {
+    kdc-options    [0] KERB-KDC-OPTIONS,
+    client-name    [1] KERB-PRINCIPAL-NAME OPTIONAL, -- Used only in AS-REQUEST
+    realm          [2] KERB-REALM, -- Server's realm  Also client's in AS-REQUEST
+    server-name    [3] KERB-PRINCIPAL-NAME OPTIONAL,
+    starttime      [4] KERB-TIME OPTIONAL,
+    endtime        [5] KERB-TIME,
+    renew-until    [6] KERB-TIME OPTIONAL,
+    nonce          [7] INTEGER,
+    encryption-type [8] SEQUENCE OF INTEGER, -- EncryptionType,
+                                             -- in preference order
+    addresses      [9] PKERB-HOST-ADDRESSES OPTIONAL,
+    enc-authorization-data [10] KERB-ENCRYPTED-DATA OPTIONAL,
+         -- KERB-AUTHORIZATION-DATA
+    additional-tickets [11] SEQUENCE OF KERB-TICKET OPTIONAL
+} --#public--
+
+-- RFC4120: 5.4.2.  KRB_KDC_REP Definition
+
+KERB-AS-REPLY ::= [APPLICATION 11] KERB-KDC-REPLY --#public--
+
+KERB-TGS-REPLY ::= [APPLICATION 13] KERB-KDC-REPLY --#public--
+
+KERB-KDC-REPLY ::= SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    preauth-data   [2] SEQUENCE OF KERB-PA-DATA OPTIONAL,
+    client-realm   [3] KERB-REALM,
+    client-name    [4] KERB-PRINCIPAL-NAME,
+    ticket         [5] KERB-TICKET, -- KERB-TICKET
+    encrypted-part [6] KERB-ENCRYPTED-DATA -- KERB-ENCRYPTED-KDC-REPLY
+} --#public--
+
+KERB-ENCRYPTED-AS-REPLY ::= [APPLICATION 25] KERB-ENCRYPTED-KDC-REPLY --#public--
+
+KERB-ENCRYPTED-TGS-REPLY ::= [APPLICATION 26] KERB-ENCRYPTED-KDC-REPLY --#public--
+
+KERB-ENCRYPTED-KDC-REPLY ::= SEQUENCE {
+    session-key    [0] KERB-ENCRYPTION-KEY-ASN1,
+    last-request   [1] PKERB-LAST-REQUEST,
+    nonce          [2] INTEGER,
+    key-expiration [3] KERB-TIME OPTIONAL,
+    flags          [4] KERB-TICKET-FLAGS,
+    authtime       [5] KERB-TIME,
+    starttime      [6] KERB-TIME OPTIONAL,
+    endtime        [7] KERB-TIME,
+    renew-until    [8] KERB-TIME OPTIONAL,
+    server-realm   [9] KERB-REALM,
+    server-name    [10] KERB-PRINCIPAL-NAME,
+    client-addresses [11] PKERB-HOST-ADDRESSES OPTIONAL,
+    encrypted-pa-data [12] SEQUENCE OF KERB-PA-DATA OPTIONAL
+} --#public--
+
+
+PKERB-LAST-REQUEST ::= SEQUENCE OF SEQUENCE {
+    last-request-type [0] INTEGER,
+    last-request-value [1] KERB-TIME
+} --#public--
+
+-- RFC4120: 5.5.  Client/Server (CS) Message Specifications
+
+-- RFC4120: 5.5.1.  KRB_AP_REQ Definition
+
+KERB-AP-REQUEST ::= [APPLICATION 14] SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    ap-options     [2] KERB-AP-OPTIONS,
+    ticket         [3] KERB-TICKET,
+    authenticator  [4] KERB-ENCRYPTED-DATA -- Authenticator
+} --#public--
+
+KERB-AP-OPTIONS ::= BIT STRING
+
+KERB-AUTHENTICATOR ::= [APPLICATION 2] SEQUENCE {
+    authenticator-version [0] INTEGER,
+    client-realm   [1] KERB-REALM,
+    client-name    [2] KERB-PRINCIPAL-NAME,
+    checksum       [3] KERB-CHECKSUM OPTIONAL,
+    client-usec    [4] INTEGER,
+    client-time    [5] KERB-TIME,
+    subkey         [6] KERB-ENCRYPTION-KEY-ASN1 OPTIONAL,
+    sequence-number [7] KERB-SEQUENCE-NUMBER-LARGE OPTIONAL,
+    authorization-data [8] PKERB-AUTHORIZATION-DATA OPTIONAL
+} --#public--
+
+-- RFC4120: 5.5.2.  KRB_AP_REP Definition
+
+KERB-AP-REPLY ::= [APPLICATION 15] SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    encrypted-part [2] KERB-ENCRYPTED-DATA -- EncAPRepPart
+} --#public--
+
+KERB-ENCRYPTED-AP-REPLY ::= [APPLICATION 27] SEQUENCE {
+    client-time    [0] KERB-TIME,
+    client-usec    [1] INTEGER,
+    subkey         [2] KERB-ENCRYPTION-KEY-ASN1 OPTIONAL,
+    sequence-number [3] KERB-SEQUENCE-NUMBER OPTIONAL
+} --#public--
+
+-- RFC4120: 5.6.  KRB_SAFE Message Specification
+
+-- RFC4120: 5.6.1.  KRB_SAFE definition
+
+KERB-SAFE-MESSAGE ::= [APPLICATION 20] SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    safe-body      [2] KERB-SAFE-BODY,
+    checksum       [3] KERB-CHECKSUM
+} --#public--
+
+KERB-SAFE-BODY ::= SEQUENCE {
+    user-data      [0] OCTET STRING,
+    timestamp      [1] KERB-TIME OPTIONAL,
+    usec           [2] INTEGER OPTIONAL,
+    sequence-number [3] KERB-SEQUENCE-NUMBER OPTIONAL,
+    sender-address [4] KERB-HOST-ADDRESS, -- sender's addr
+    recipient-address [5] KERB-HOST-ADDRESS OPTIONAL -- recip's addr
+} --#public--
+
+-- RFC4120: 5.7.  KRB_PRIV Message Specification
+
+-- RFC4120: 5.7.1.  KRB_PRIV Definition
+
+KERB-PRIV-MESSAGE ::= [APPLICATION 21] SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    encrypted-part [3] KERB-ENCRYPTED-DATA -- EncKrbPrivPart
+} --#public--
+
+KERB-ENCRYPTED-PRIV ::= [APPLICATION 28] SEQUENCE {
+    user-data      [0] OCTET STRING,
+    timestamp      [1] KERB-TIME OPTIONAL,
+    usec           [2] INTEGER OPTIONAL,
+    sequence-number [3] KERB-SEQUENCE-NUMBER OPTIONAL,
+    sender-address [4] KERB-HOST-ADDRESS, -- sender's addr
+    recipient-address [5] KERB-HOST-ADDRESS OPTIONAL -- recip's addr
+} --#public--
+
+-- RFC4120: 5.8.  KRB_CRED Message Specification
+
+-- Although not formally documented, likely is best suited here
+PKERB-TICKET-EXTENSIONS ::= SEQUENCE OF SEQUENCE {
+    te-type        [0] INTEGER,
+    te-data        [1] OCTET STRING
+} --#public--
+
+-- RFC4120: 5.8.1.  KRB_CRED Definition
+
+KERB-CRED ::= [APPLICATION 22] SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER, -- KRB_CRED
+    tickets        [2] SEQUENCE OF KERB-TICKET,
+    encrypted-part [3] KERB-ENCRYPTED-DATA -- EncKrbCredPart
+} --#public--
+
+KERB-ENCRYPTED-CRED ::= [APPLICATION 29] SEQUENCE {
+    ticket-info    [0] SEQUENCE OF KERB-CRED-INFO,
+    nonce          [1] INTEGER OPTIONAL,
+    timestamp      [2] KERB-TIME OPTIONAL,
+    usec           [3] INTEGER OPTIONAL,
+    sender-address [4] KERB-HOST-ADDRESS OPTIONAL,
+    recipient-address [5] KERB-HOST-ADDRESS OPTIONAL
+} --#public--
+
+KERB-CRED-INFO ::= SEQUENCE {
+    key            [0] KERB-ENCRYPTION-KEY-ASN1,
+    principal-realm [1] KERB-REALM OPTIONAL,
+    principal-name [2] KERB-PRINCIPAL-NAME OPTIONAL,
+    flags          [3] KERB-TICKET-FLAGS OPTIONAL,
+    authtime       [4] KERB-TIME OPTIONAL,
+    starttime      [5] KERB-TIME OPTIONAL,
+    endtime        [6] KERB-TIME OPTIONAL,
+    renew-until    [7] KERB-TIME OPTIONAL,
+    service-realm  [8] KERB-REALM OPTIONAL,
+    service-name   [9] KERB-PRINCIPAL-NAME OPTIONAL,
+    client-addresses [10] PKERB-HOST-ADDRESSES OPTIONAL
+} --#public--
+
+-- RFC4120: 5.9.  Error Message Specification
+
+-- RFC4120: 5.9.1.  KRB_ERROR Definition
+
+KERB-ERROR ::= [APPLICATION 30] SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    client-time    [2] KERB-TIME OPTIONAL,
+    client-usec    [3] INTEGER OPTIONAL,
+    server-time    [4] KERB-TIME,
+    server-usec    [5] INTEGER,
+    error-code     [6] INTEGER,
+    client-realm   [7] KERB-REALM OPTIONAL,
+    client-name    [8] KERB-PRINCIPAL-NAME OPTIONAL,
+    realm          [9] KERB-REALM, -- Correct realm
+    server-name    [10] KERB-PRINCIPAL-NAME, -- Correct name
+    error-text     [11] GeneralString --#lenptr--OPTIONAL,
+    error-data     [12] OCTET STRING OPTIONAL
+} --#public--
+
+KERB-ERROR-METHOD-DATA ::= SEQUENCE {
+    data-type      [1] INTEGER,
+    data-value     [2] OCTET STRING OPTIONAL
+} --#public--
+
+KERB-TYPED-DATA ::= SEQUENCE {
+    -- The disassembly of kerberos.dll. post NT 5.2 makes it appear that
+    -- Microsoft replaced the SEQUENCE keyword with CHOICE. That change
+    -- would be nonstandard and there is likely another change they did
+    -- which caused their internal asn1 compiler to emit similar code.
+    -- Currently choosing to keep this type as its standard definition
+    -- for any asn1 code generated from it to function correctly.
+    data-type      [0] INTEGER,
+    data-value     [1] OCTET STRING
+}
+
+TYPED-DATA ::= SEQUENCE OF KERB-TYPED-DATA --#public--
+
+-- draft-zhu-kerb-enctype-nego-03.txt
+
+-- 3.  Negotiation Extension
+
+EtypeList ::= SEQUENCE OF INTEGER --#public--
+    -- Specifies the enctypes supported by the client.
+    -- This enctype list is in decreasing preference order
+    -- (favorite choice first).
+    -- Int32 is defined in [RFC4120].
+
+-- [MS-KILE]: Kerberos Protocol Extensions
+
+-- [MS-KILE]: 2.2 Message Syntax
+
+-- [MS-KILE]: 2.2.1 KERB-EXT-ERROR
+
+KERB-EXT-ERROR ::= SEQUENCE {
+    status         [0] INTEGER, -- NTStatus code
+    klininfo       [1] INTEGER, -- klin macro info
+    flags          [2] INTEGER -- used for passing extra info
+}
+
+-- [MS-KILE]: 2.2.2 KERB-ERROR-DATA
+
+KERB-ERROR-DATA ::= KERB-ERROR-METHOD-DATA
+
+-- [MS-KILE]: 2.2.3 KERB-PA-PAC-REQUEST
+
+-- Indicates if a PAC should be included or not
+KERB-PA-PAC-REQUEST ::= SEQUENCE {
+    include-pac    [0] BOOLEAN -- if TRUE, and no pac present,
+                               -- include PAC. If FALSE, and pac
+                               -- PAC present, remove PAC
+} --#public--
+
+-- [MS-KILE]: 2.2.6 KERB-AD-RESTRICTION-ENTRY
+
+KERB-AD-RESTRICTION-ENTRY ::= SEQUENCE {
+    restriction-type [0] INTEGER,
+    restriction      [1] OCTET STRING
+} --#public--
+
+PKERB-AD-RESTRICTION ::= SEQUENCE OF KERB-AD-RESTRICTION-ENTRY --#public--
+
+-- [MS-KILE]: 2.2.10 PA-PAC-OPTIONS
+
+KERB-PA-PAC-OPTIONS ::= SEQUENCE { -- The specification in MS-KILE is incorrect
+    pac-flags  [0] KERB-KDC-OPTIONS
+    -- Claims (0)
+    -- Branch Aware (1)
+    -- Forward to Full DC (2)
+} --#public--
+
+-- [MS-KILE]: 2.2.11 KERB-KEY-LIST-REQ
+
+KERB-KEY-LIST-REQ ::= SEQUENCE OF INTEGER --#public-- -- encryption type
+
+-- [MS-KILE]: 2.2.12 KERB-KEY-LIST-REP
+
+KERB-KEY-LIST-REP ::= SEQUENCE OF KERB-ENCRYPTION-KEY-ASN1 --#public--
+
+-- RFC3244: Microsoft Windows 2000 Kerberos Change Password and Set Password Protocols
+
+-- RFC3244: 2.  The Protocol
+
+KERB-CHANGE-PASSWORD-DATA ::= SEQUENCE {
+    new-password   [0] OCTET STRING,
+    target-name    [1] KERB-PRINCIPAL-NAME OPTIONAL,
+    target-realm   [2] KERB-REALM OPTIONAL
+} --#public--
+
+-- [MS-KKDCP]: Kerberos Key Distribution Center (KDC) Proxy Protocol
+
+-- [MS-KKDCP]: 2.2 Message Syntax
+
+-- [MS-KKDCP]: 2.2.2 KDC_PROXY_MESSAGE
+
+KDC-PROXY-MESSAGE ::= SEQUENCE {
+    kerb-message   [0] OCTET STRING,
+    target-domain  [1] KERB-REALM OPTIONAL,
+    dclocator-hint [2] INTEGER OPTIONAL
+} --#public--
+
+-- [MS-SFU]: Kerberos Protocol Extensions: Service for User and Constrained Delegation Protocol
+
+-- [MS-SFU]: 2.2 Message Syntax
+
+-- [MS-SFU]: 2.2.1 PA-FOR-USER
+
+KERB-PA-FOR-USER ::= SEQUENCE {
+        -- PA TYPE 129
+    userName                 [0] KERB-PRINCIPAL-NAME,
+    userRealm                [1] KERB-REALM,
+    cksum                    [2] KERB-CHECKSUM,
+    authentication-package   [3] GeneralString,
+    authorization-data       [4] OCTET STRING OPTIONAL
+} --#public--
+
+-- [MS-SFU]: 2.2.2 PA_S4U_X509_USER
+
+PA-S4U-X509-USER ::= SEQUENCE {
+    user-id             [0] S4UUserID,
+    checksum            [1] KERB-CHECKSUM
+} --#public--
+  
+S4UUserID ::= SEQUENCE {
+    nonce               [0] INTEGER, -- the nonce in KDC-REQ-BODY
+    cname               [1] KERB-PRINCIPAL-NAME OPTIONAL, -- Certificate mapping hints
+    crealm              [2] KERB-REALM,
+    certificate         [3] OCTET STRING OPTIONAL, -- Originally named subject-certificate
+    options             [4] BIT STRING OPTIONAL
+} --#public--
+
+-- RFC6113: A Generalized Framework for Kerberos Pre-Authentication
+
+-- RFC6113: 5.4.1.  FAST Armors
+
+KrbFastArmor ::= SEQUENCE {
+    armor-type   [0] INTEGER,
+    armor-value  [1] OCTET STRING
+}
+
+-- RFC6113: 5.4.2.  FAST Request
+
+PA-FX-FAST-REQUEST ::= CHOICE {
+    armored-data [0] KrbFastArmoredReq
+} --#public--
+
+KrbFastArmoredReq ::= SEQUENCE {
+    armor        [0] KrbFastArmor OPTIONAL,
+    req-checksum [1] KERB-CHECKSUM,
+    enc-fast-req [2] EncryptedData
+} --#public--
+
+KrbFastReq ::= SEQUENCE {
+    fast-options [0] BIT STRING,
+    padata       [1] SEQUENCE OF KERB-PA-DATA,
+    req-body     [2] KERB-KDC-REQUEST-BODY
+} --#public--
+
+-- RFC6113: 5.4.3.  FAST Response
+
+PA-FX-FAST-REPLY ::= CHOICE {
+    armored-data [0] KrbFastArmoredRep
+} --#public--
+
+KrbFastArmoredRep ::= SEQUENCE {
+    enc-fast-rep [0] EncryptedData
+}
+
+KrbFastResponse ::= SEQUENCE {
+    padata         [0] SEQUENCE OF KERB-PA-DATA,
+    strengthen-key [1] EncryptionKey OPTIONAL,
+    finished       [2] KrbFastFinished OPTIONAL,
+    nonce          [3] INTEGER
+} --#public--
+
+KrbFastFinished ::= SEQUENCE {
+    timestamp       [0] KERB-TIME,
+    usec            [1] INTEGER,
+    crealm          [2] KERB-REALM,
+    cname           [3] KERB-PRINCIPAL-NAME,
+    ticket-checksum [4] KERB-CHECKSUM
+} --#public--
+
+EncryptedChallenge ::= EncryptedData --#public--
+
+-- RFC6806: Kerberos Principal Name Canonicalization and Cross-Realm Referrals
+
+-- Appendix A.  Compatibility with Earlier Implementations of Name Canonicalization
+
+KERB-PA-SERV-REFERRAL   ::= SEQUENCE { -- Originall named PA-SVR-REFERRAL-DATA in the RFC
+        referred-server-name [1]        KERB-PRINCIPAL-NAME OPTIONAL,
+        referred-server-realm[0]        KERB-REALM
+} --#public--
+
+-- RFC4556: Public Key Cryptography for Initial Authentication in Kerberos (PKINIT)
+
+-- RFC4556: 3.2.  PKINIT Pre-authentication Syntax and Use
+
+-- RFC4556: 3.2.1.  Generation of Client Request
+
+KERB-PA-PK-AS-REQ ::= SEQUENCE { -- Originally had a encryption-cert member which was later removed
+        -- PA TYPE 14
+    signed-auth-pack [0] IMPLICIT OCTET STRING,
+        -- SignedData
+    trusted-certifiers [2] SEQUENCE OF KERB-TRUSTED-CAS OPTIONAL,
+        -- CAs that the client trusts
+        -- The code Microsoft's internal asn1 code generator would emit
+        -- pre-NT 5.2 would include the type member snake cased,
+        -- but post-NT 5.2 it was cased as trustedCertifiers. This
+        -- is likely due to updates to their code generator.
+    kdc-pk-id       [3] IMPLICIT OCTET STRING OPTIONAL
+        -- Was originally named kdc-cert
+        -- an IssuerAndSerialNumber, specifies a
+        -- particular KDC cert if the client
+        -- has it, must be accompanied by a
+        -- single trusted-certifier
+} --#public--
+
+DHNonce ::= OCTET STRING
+
+-- Originally named TrustedCA in the draft for the RFC and later
+-- changed when the RFC was publised to ExternalPrincipalIdentifier.
+-- Microsoft however still uses the original name for the type.
+TrustedCA ::= SEQUENCE {
+    subjectName           [0] IMPLICIT OCTET STRING OPTIONAL,
+    issuerAndSerialNumber [1] IMPLICIT OCTET STRING OPTIONAL,
+    subjectKeyIdentifier  [2] IMPLICIT OCTET STRING OPTIONAL
+} --#public--
+
+KERB-AUTH-PACKAGE ::= SEQUENCE {
+    pk-authenticator [0] KERB-PK-AUTHENTICATOR,
+    client-public-value [1] KERB-SUBJECT-PUBLIC-KEY-INFO OPTIONAL
+         -- if client is using Diffie-Hellman
+} --#public--
+
+KERB-AUTH-PACKAGE2 ::= SEQUENCE {
+    pkAuthenticator         [0] PKAuthenticator,
+    clientPublicValue       [1] KERB-SUBJECT-PUBLIC-KEY-INFO OPTIONAL,
+             -- Type SubjectPublicKeyInfo is defined in
+             -- [RFC3280].
+             -- Specifies Diffie-Hellman domain parameters
+             -- and the client's public key value [IEEE1363].
+             -- The DH public key value is encoded as a BIT
+             -- STRING according to [RFC3279].
+             -- This field is present only if the client wishes
+             -- to use the Diffie-Hellman key agreement method.
+    supportedCMSTypes       [2] SEQUENCE OF KERB-ALGORITHM-IDENTIFIER OPTIONAL,
+             -- Type AlgorithmIdentifier is defined in
+             -- [RFC3280].
+             -- List of CMS algorithm [RFC3370] identifiers
+             -- that identify key transport algorithms, or
+             -- content encryption algorithms, or signature
+             -- algorithms supported by the client in order of
+             -- (decreasing) preference.
+    clientDHNonce           [3] DHNonce OPTIONAL
+             -- Present only if the client indicates that it
+             -- wishes to reuse DH keys or to allow the KDC to
+             -- do so.
+} --#public--
+
+KERB-PK-AUTHENTICATOR ::= SEQUENCE {
+    kdc-name       [0] KERB-PRINCIPAL-NAME,
+    kdc-realm      [1] KERB-REALM,
+    cusec          [2] INTEGER,
+         -- for replay prevention
+    client-time    [3] KERB-TIME,
+         -- for replay prevention
+    nonce          [4] INTEGER
+}
+
+-- RFC4556: 3.2.2.  Receipt of Client Request
+
+TD-TRUSTED-CERTIFIERS ::= SEQUENCE OF OCTET STRING --#public-- -- Definition from RFC
+
+TD-INVALID-CERTIFICATES ::= SEQUENCE OF OCTET STRING --#public-- -- Definition from RFC
+
+KRB5PrincipalName ::= SEQUENCE {
+    realm         [0] KERB-REALM,
+    principalName [1] KERB-PRINCIPAL-NAME
+} --#public--
+
+TD-DH-PARAMETERS ::= SEQUENCE OF KERB-ALGORITHM-IDENTIFIER --#public--
+
+-- RFC4556: 3.2.3.  Generation of KDC Reply
+
+AD-INITIAL-VERIFIED-CAS ::= SEQUENCE OF TrustedCA --#public--
+
+KERB-PA-PK-AS-REP ::= CHOICE {
+        -- PA TYPE 15
+    dhInfo         [0] DHRepInfo,
+        -- Was originally named dh-signed-data which was used as:
+        --   pkcs-7 signed data, used for DH key exchange
+        -- Was later changed to DHRepInfo with the name 
+    key-package    [1] IMPLICIT OCTET STRING
+        -- pkcs-7 enveloped data, containing
+        -- KERB-REPLY-KEY-PACKAGE
+} --#public--
+
+DHRepInfo ::= SEQUENCE { -- Does not include the kdf member which is present in some drafts
+    dhSignedData   [0] IMPLICIT OCTET STRING,
+    -- Contains a CMS type ContentInfo encoded according
+    -- to [RFC3852].
+    -- The contentType field of the type ContentInfo is
+    -- id-signedData (1.2.840.113549.1.7.2), and the
+    -- content field is a SignedData.
+    -- The eContentType field for the type SignedData is
+    -- id-pkinit-DHKeyData (1.3.6.1.5.2.3.2), and the
+    -- eContent field contains the DER encoding of the
+    -- type KDCDHKeyInfo.
+    -- KDCDHKeyInfo is defined below.
+    serverDHNonce  [1] DHNonce OPTIONAL
+    -- Present if and only if dhKeyExpiration is
+    -- present in the KDCDHKeyInfo.
+} --#public--
+
+KDCDHKeyInfo ::= SEQUENCE {
+    subjectPublicKey        [0] BIT STRING,
+            -- The KDC's DH public key.
+            -- The DH public key value is encoded as a BIT
+            -- STRING according to [RFC3279].
+    nonce                   [1] INTEGER (0..4294967295),
+            -- Contains the nonce in the pkAuthenticator field
+            -- in the request if the DH keys are NOT reused,
+            -- 0 otherwise.
+    dhKeyExpiration         [2] KERB-TIME OPTIONAL
+            -- Expiration time for KDC's key pair,
+            -- present if and only if the DH keys are reused.
+            -- If present, the KDC's DH public key MUST not be
+            -- used past the point of this expiration time.
+            -- If this field is omitted then the serverDHNonce
+            -- field MUST also be omitted.
+} --#public--
+
+-- RFC4557: Online Certificate Status Protocol (OCSP) Support for Public Key Cryptography for Initial Authentication in Kerberos (PKINIT)
+
+-- RFC4557: 1.  Introduction
+
+PKOcspData ::= SEQUENCE OF OcspResponse --#public--
+-- If more than one OcspResponse is
+-- included, the first OcspResponse
+-- MUST contain the OCSP response
+-- for the signer's certificate.
+-- The signer refers to the client for
+-- AS-REQ, and the KDC for the AS-REP,
+-- respectively.
+
+OcspResponse ::= OCTET STRING
+-- Contains a complete OCSP response,
+-- as defined in [RFC2560].
+
+-- RFC8070: Public Key Cryptography for Initial Authentication in Kerberos (PKINIT) Freshness Extension
+
+PKAuthenticator ::= SEQUENCE {
+    cusec        [0] INTEGER (0..999999),
+    client-time  [1] KERB-TIME,
+              -- named ctime in the RFC
+              -- cusec and ctime are used as in [RFC4120], for
+              -- replay prevention.
+    nonce        [2] INTEGER (0..4294967295),
+              -- Chosen randomly;  this nonce does not need to
+              -- match with the nonce in the KDC-REQ-BODY.
+    paChecksum   [3] OCTET STRING OPTIONAL,
+              -- MUST be present.
+              -- Contains the SHA1 checksum, performed over
+              -- KDC-REQ-BODY.
+    freshnessToken     [4] OCTET STRING OPTIONAL
+              -- PA_AS_FRESHNESS padata value as received from the
+              -- KDC. MUST be present if sent by KDC
+} --#public--
+
+-- draft-ietf-cat-kerberos-pk-init-06.txt
+
+-- 3.2.  Standard Public Key Authentication
+
+KERB-ALGORITHM-IDENTIFIER ::= SEQUENCE { -- Originally named AlgorithmIdentifier in the RFC draft
+    algorithm               OBJECT IDENTIFIER,
+    parameters              NOCOPYANY OPTIONAL
+} --#public--
+
+KERB-SUBJECT-PUBLIC-KEY-INFO ::= SEQUENCE { -- Originally named SubjectPublicKeyInfo in the RFC draft
+    algorithm               [0] KERB-ALGORITHM-IDENTIFIER,
+    subjectPublicKey        [1] BIT STRING
+                                -- for DH, equals
+                                -- public exponent (INTEGER encoded
+                                -- as payload of BIT STRING)
+} --#public-- -- as specified by the X.509 recommendation [9]
+
+KERB-DH-PARAMTER ::= SEQUENCE { -- The name is misspelled in Windows sources. Originally named DHParameter in the RFC draft
+    prime                   [0] INTEGER,
+                                -- p
+    base                    [1] INTEGER,
+                                -- g
+    private-value-length    [2] INTEGER OPTIONAL
+}
+
+KERB-CERTIFICATE ::= SEQUENCE { -- Originally named Certificate in the RFC draft
+    cert-type                [0] INTEGER,
+                                -- type of certificate
+                                -- 1 = X.509v3 (DER encoding)
+                                -- 2 = PGP (per PGP specification)
+    cert-data                [1] OCTET STRING
+                                -- actual certificate
+                                -- type determined by certType
+}
+
+KERB-PA-PK-AS-REP2 ::= SEQUENCE { -- Originally named PA-PK-AS-REP in the RFC draft
+        -- PA TYPE 15
+   key-package    [0] KERB-ENCRYPTED-DATA OPTIONAL,
+        -- of type KERB-ENCRYPTED-SIGNED-REPLY-KEY-PACKAGE
+        -- using the temporary key in temp-key-package.
+        -- used with kerberos-pk encryption
+   temp-key-package [1] KERB-ENVELOPED-KEY-PACKAGE,
+        -- contains type KERB-ENCRYPTED-SIGNED-REPLY-KEY-PACKAGE
+        -- temporary key encrpyted with
+        -- client public key or diffie-hellman key
+   signed-kdc-public-value [2] KERB-SIGNED-KDC-PUBLIC-VALUE OPTIONAL,
+        -- if one was passed in request
+   kdc-cert       [3] SEQUENCE OF KERB-CERTIFICATE OPTIONAL
+        -- the KDC's certificate
+        -- optionally followed by that
+        -- certificate's certifier chain
+} --#public--
+
+KERB-SIGNED-REPLY-KEY-PACKAGE ::= SEQUENCE { -- Originally named PaReply in the RFC draft
+    reply-key-package       [0] KERB-REPLY-KEY-PACKAGE2,
+    reply-key-signature     [1] KERB-SIGNATURE
+                                -- of replyEncKeyPack
+                                -- using KDC's private key
+} --#public--
+
+KERB-SIGNED-KDC-PUBLIC-VALUE ::= SEQUENCE { -- Originally named SignedKDCPublicValue in the RFC draft
+    kdc-public-value        [0] KERB-SUBJECT-PUBLIC-KEY-INFO,
+                                -- as described above
+    kdc-public-value-sig    [1] KERB-SIGNATURE
+                                -- of kdcPublicValue
+                                -- using KDC's private key
+}
+
+KERB-PA-PK-AS-REQ2 ::= SEQUENCE { -- Originally named PA-PK-AS-REQ in the RFC draft
+    -- PA TYPE 14
+signed-auth-pack [0] KERB-SIGNED-AUTH-PACKAGE,
+user-certs     [1] SEQUENCE OF KERB-CERTIFICATE OPTIONAL,
+    -- the user's certificate chain
+trusted-certifiers [2] SEQUENCE OF KERB-PRINCIPAL-NAME OPTIONAL,
+    -- CAs that the client trusts
+serial-number  [3] KERB-CERTIFICATE-SERIAL-NUMBER OPTIONAL
+    -- specifying a particalu cert if the client
+    -- already has it, must be accompanied by a
+    -- single trusted-certifier
+} --#public--
+
+KERB-CERTIFICATE-SERIAL-NUMBER ::= INTEGER -- Originally named CertificateSerialNumber in the RFC draft
+                                -- as specified by PKCS 6
+
+KERB-SIGNED-AUTH-PACKAGE ::= SEQUENCE { -- Originally named SignedAuthPack in the RFC draft
+    auth-package            [0] KERB-AUTH-PACKAGE,
+    auth-package-signature  [1] KERB-SIGNATURE
+                                -- of auth-package
+                                -- using user's private key
+}
+
+NOCOPYANY   ::= ANY --#nomemcpy--
+
+KERB-SIGNATURE ::= SEQUENCE { -- Originally named Signature in the RFC draft
+    signature-algorithm     [0] KERB-ALGORITHM-IDENTIFIER,
+    pkcs-signature          [1] BIT STRING
+} --#public--
+
+KERB-SALTED-ENCRYPTED-TIMESTAMP   ::= SEQUENCE { -- This is very likely the PA-ENC-TS-ENC type from the draft RFC, with the pachecksum member replaced with salt
+    timestamp[0]                    KERB-TIME, -- client's time
+    usec[1]                         INTEGER OPTIONAL,
+    salt[2]                         OCTET STRING
+} --#public--
+
+-- draft-ietf-cat-kerberos-pk-init-07.txt
+
+-- 3.2.  Public Key Authentication
+
+KERB-ENVELOPED-KEY-PACKAGE ::= CHOICE { -- This is most likely a nonstandard implementation of EnvelopedKeyPack from the RFC draft
+    encrypted-data          [1] KERB-ENCRYPTED-DATA,
+                                -- of type TmpKeyPack, not defined here
+    pkinit-enveloped-data   [4] IMPLICIT OCTET STRING
+                                -- pkcs-7 enveloped data
+} --#public--
+
+KERB-PKCS-SIGNATURE ::= SEQUENCE { -- Originally named Signature in the RFC draft
+    encryption-type         [0] INTEGER,
+                                -- algorithm for PKCS key encryption
+    signature               [1] OCTET STRING
+} --#public--
+
+-- draft-ietf-cat-kerberos-pk-init-13.txt
+
+-- 3.2.2.  KDC Response
+
+KERB-KDC-DH-KEY-INFO ::= SEQUENCE { -- Originally named KdcDHKeyInfo in the RFC draft
+    nonce                   [0] INTEGER,
+                                -- binds response to request
+    subject-public-key      [1] BIT STRING
+                                -- Equals public exponent (g^a mod p)
+                                -- INTEGER encoded as payload of
+                                -- BIT STRING
+}
+
+-- draft-ietf-cat-kerberos-pk-init-16.txt
+
+-- 3.2.  Public Key Authentication
+
+KERB-TRUSTED-CAS ::= CHOICE { -- Originally named TrustedCas in the RFC draft
+    principal-name          [0] KERB-KERBEROS-NAME,
+                                -- principal name and realm
+    ca-name                 [1] IMPLICIT OCTET STRING,
+                                -- real type is 'Name',
+                                -- fully qualified X.500 name
+                                -- as defined by X.509
+    issuer-and-serial       [2] IMPLICIT OCTET STRING
+                                -- since a CA may have a number of certs,
+                                -- only one of which a client trusts
+} --#public--
+
+KERB-REPLY-KEY-PACKAGE2 ::= SEQUENCE { -- Originally named ReplyKeyPack in the RFC draft and includes an extra subject-public-key member
+    reply-key               [0] KERB-ENCRYPTION-KEY-ASN1,
+                                -- used to encrypt main reply
+    nonce                   [1] INTEGER,
+                                -- binds response to the request
+                                -- must be same as the nonce
+                                -- passed in the PKAuthenticator
+    subject-public-key      [2] BIT STRING OPTIONAL
+                                -- included only when using diffie-hellman
+                                -- equals public exponent
+} --#public--
+
+KERB-REPLY-KEY-PACKAGE3 ::= SEQUENCE { -- Could not find in an RFC, but likely appropriate to be defined here
+    reply-key               [0] KERB-ENCRYPTION-KEY-ASN1,
+                                -- used to encrypt main reply
+    as-checksum             [1] KERB-CHECKSUM
+} --#public--
+
+KERB-KERBEROS-NAME ::= SEQUENCE { -- Originally named KerberosName in the RFC draft
+    realm                   [0] KERB-REALM,
+                                -- as defined in RFC1510
+    principal-name          [1] KERB-PRINCIPAL-NAME
+                                -- as defined in RFC1510
+} --#public--
+
+-- draft-ietf-cat-kerberos-pk-init-19.txt
+
+-- 3.2.2.  KDC Response
+
+KERB-REPLY-KEY-PACKAGE ::= SEQUENCE { -- Originally named ReplyEncKeyPack in the RFC draft
+    reply-key               [0] KERB-ENCRYPTION-KEY-ASN1,
+                                -- used to encrypt main reply
+    nonce                   [1] INTEGER
+                                -- binds response to the request
+                                -- must be same as the nonce
+                                -- passed in the PKAuthenticator
+} --#public--
+
+-- draft-swift-win2k-krb-user2user-01
+
+-- draft-swift-win2k-krb-user2user-01
+
+KERB-TGT-REQUEST ::= SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    server-name    [2] KERB-PRINCIPAL-NAME OPTIONAL,
+    server-realm   [3] KERB-REALM OPTIONAL
+} --#public--
+
+KERB-TGT-REPLY ::= SEQUENCE {
+    version        [0] INTEGER,
+    message-type   [1] INTEGER,
+    ticket         [2] KERB-TICKET
+} --#public--
+
+END

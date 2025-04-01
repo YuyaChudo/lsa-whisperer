@@ -1,0 +1,226 @@
+-- Copyright (C) 2024 Evan McBroom
+--
+-- This document defines types related to PKCS12 as they existed in NT 5.2.
+-- No effort has been performed yet update the changes and additions to types
+-- in newer versions of Windows, if any. That effort may be done at a later
+-- time but is currently not planned. The defined types relate to the
+-- following documents:
+--   CCITT. Recommendation X.509: The Directory
+--   RFC5280: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
+--   RFC5652: Cryptographic Message Syntax (CMS)
+--   RFC8017: PKCS #1: RSA Cryptography Specifications Version 2.2
+--   RFC2315: PKCS #7: Cryptographic Message Syntax Version 1.5
+--   RFC2315: PKCS #8: Private-Key Information Syntax Specification Version 1.2
+--   RFC7292: PKCS #12: Personal Information Exchange Syntax v1.1
+--
+PKCS12 DEFINITIONS IMPLICIT TAGS ::= BEGIN
+
+-- General types
+
+ObjectID ::= OBJECT IDENTIFIER --#oid array--
+
+ObjID ::= ObjectID
+
+Any ::= ANY
+
+ObjectIdentifierType ::= ObjectID --#public--
+
+OctetStringType ::= OCTET STRING --#public--
+
+IntegerType ::= INTEGER --#intx-- --#public--
+
+HugeInteger ::= INTEGER --#intx-- (0..MAX)
+
+-- CCITT. Recommendation X.509: The Directory
+
+AttributeSetValue ::= SET OF ANY --#public--
+
+Attribute ::= SEQUENCE { -- Modified from the original X.509 standard
+    attributeType  ObjectID,
+    attributeValue AttributeSetValue
+}
+
+-- RFC5280: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile
+
+-- RFC5280: 4.1.1.  Certificate Fields
+
+AlgorithmIdentifier ::= SEQUENCE {
+    algorithm      ObjectID,
+    parameters     ANY OPTIONAL
+}
+
+-- RFC5652: Cryptographic Message Syntax (CMS)
+
+-- RFC5652: 6.1.  EnvelopedData Type
+
+EncryptedContentInfo ::= SEQUENCE {
+    contentType          ContentType,
+    contentEncryptionAlg ContentEncryptionAlgorithmIdentifier,
+    encryptedContent [0] IMPLICIT EncryptedContent OPTIONAL
+}
+
+EncryptedContent ::= OCTET STRING
+
+-- RFC5652: 8.  Encrypted-data Content Type
+
+EncryptedData ::= SEQUENCE {
+    version              Version,
+    encryptedContentInfo EncryptedContentInfo
+} --#public--
+
+-- RFC5652: 10.1. Algorithm Identifier Types
+
+ContentEncryptionAlgorithmIdentifier ::= AlgorithmIdentifier
+
+-- RFC8017: PKCS #1: RSA Cryptography Specifications Version 2.2
+
+-- RFC8017: A.1.  RSA Key Representation
+
+RSAPublicKey ::= SEQUENCE {
+    modulus        HugeInteger, -- n
+    publicExponent HugeInteger  -- e
+} --#public--
+
+RSAPrivateKey ::= SEQUENCE {
+    version         Version,
+    modulus         HugeInteger, -- n
+    publicExponent  INTEGER,     -- e
+    privateExponent HugeInteger, -- d
+    prime1          HugeInteger, -- p
+    prime2          HugeInteger, -- q
+    exponent1       HugeInteger, -- d mod (p-1)
+    exponent2       HugeInteger, -- d mod (q-1)
+    coefficient     HugeInteger  -- (inverse of q) mod p
+} --#public--
+
+-- RFC2315: PKCS #7: Cryptographic Message Syntax Version 1.5
+
+-- RFC2315: 6. Useful types
+
+DigestAlgorithmIdentifier ::= AlgorithmIdentifier
+
+-- RFC2315: 7. General syntax
+
+ContentType ::= ObjectID
+
+ContentInfo ::= SEQUENCE {
+    contentType    ContentType,
+    content        [0] EXPLICIT ANY OPTIONAL
+}
+
+-- RFC2315: 9.4 Digest-encryption process
+
+DigestInfo ::= SEQUENCE {
+    digestAlgorithm DigestAlgorithmIdentifier,
+    digest         Digest
+} --#public--
+
+Digest ::= OCTET STRING
+
+-- RFC2315: PKCS #8: Private-Key Information Syntax Specification Version 1.2
+
+-- RFC2315: 5.  Private-Key Information Syntax
+
+PrivateKeyInfo ::= SEQUENCE {
+    version             Version,
+    privateKeyAlgorithm PrivateKeyAlgorithmIdentifier,
+    privateKey          PrivateKey,
+    attributes          [0] IMPLICIT Attributes OPTIONAL
+} --#public--
+
+Version ::= INTEGER
+
+PrivateKeyAlgorithmIdentifier ::= AlgorithmIdentifier
+
+PrivateKey ::= OCTET STRING
+
+Attributes ::= SET OF Attribute --#public-- -- Uses the modified version of Attribute
+
+-- RFC2315: 6.  Encrypted Private-Key Information Syntax
+
+EncryptedPrivateKeyInfo ::= SEQUENCE {
+    encryptionAlgorithm EncryptionAlgorithmIdentifier,
+    encryptedData       EncryptedData
+} --#public--
+
+EncryptionAlgorithmIdentifier ::= AlgorithmIdentifier
+
+-- RFC7292: PKCS #12: Personal Information Exchange Syntax v1.1
+
+-- RFC7292: 4.  PFX PDU Syntax
+
+PFX ::= SEQUENCE {
+    version        Version (3),
+    authSafes      ContentInfo,
+    -- signedData in public-key integrity mode, and
+    -- data in password integrity mode. See PKCS #7
+    macData        MacData OPTIONAL
+    -- present only in password integrity mode
+} --#public--
+
+MacData ::= SEQUENCE {
+    safeMac        DigestInfo, -- see PKCS #7
+    macSalt        OCTET STRING,
+    macIterationCount INTEGER DEFAULT 1
+} --#public--
+
+-- RFC7292: 4.1.  The AuthenticatedSafe Type
+
+AuthenticatedSafes ::= SEQUENCE OF ContentInfo --#public--
+     -- data if unencrypted
+     -- encryptedData if password encrypted
+     -- envelopedData if public key encrypted
+
+-- RFC7292: 4.2.  The SafeBag Type
+
+SafeContents ::= SEQUENCE OF SafeBag --#public--
+
+SafeBag ::= SEQUENCE {
+    safeBagType    ObjectID,
+    safeBagContent [0] EXPLICIT ANY DEFINED BY safeBagType,
+    safeBagAttribs Attributes OPTIONAL
+} --#public--
+
+-- RFC7292: 4.2.1.  The KeyBag Type
+
+KeyBag ::= PrivateKeyInfo
+
+-- RFC7292: 4.2.2.  The PKCS8ShroudedKeyBag Type
+
+Pkcs-8ShroudedKeyBag ::= EncryptedPrivateKeyInfo
+
+-- RFC7292: 4.2.3.  The CertBag Type
+
+CertBag ::= SEQUENCE {
+    certType       ObjectID,
+    value          [0] EXPLICIT ANY DEFINED BY certType
+} --#public--
+
+X509Cert ::= OCTET STRING
+
+SDSICert ::= IA5String
+
+-- RFC7292: 4.2.4.  The CRLBag Type
+
+CRLBag ::= SEQUENCE {
+    crlType        ObjectID,
+    value          [0] EXPLICIT ANY DEFINED BY crlType
+} --#public--
+
+X509CRL ::= OCTET STRING
+
+-- RFC7292: 4.2.5.  The SecretBag Type
+
+SecretBag ::= SEQUENCE {
+    secretType     ObjectID,
+    secretContent  [0] EXPLICIT ANY DEFINED BY secretType
+} --#public--
+
+-- RFC7292: Appendix C.  Keys and IVs for Password Privacy Mode
+
+PBEParameter ::= SEQUENCE { -- Named pkcs-12PbeParams in the RFC
+    salt           OCTET STRING,
+    iterationCount INTEGER
+} --#public--
+
+END

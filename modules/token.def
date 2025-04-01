@@ -1,0 +1,6 @@
+EXPORTS
+    elevate
+    impersonate
+    revert_to_self
+    set_privilege
+    whoami

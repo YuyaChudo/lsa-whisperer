@@ -1,0 +1,18 @@
+-- Copyright (C) 2024 Evan McBroom
+--
+-- [MS-RDPEAR]: Remote Desktop Protocol Authentication Redirection Virtual Channel
+--
+RDPEAR DEFINITIONS ::= BEGIN
+
+TSRemoteGuardInnerPacket ::= SEQUENCE {
+    version        [0] TSRemoteGuardVersion DEFAULT tsremoteguardv1,
+    packageName    [1] OCTET STRING,
+    buffer         [2] OCTET STRING,
+    extension      [3] ANY OPTIONAL -- X.680 open type for future extension point ...
+}
+
+TSRemoteGuardVersion ::= ENUMERATED {
+    tsremoteguardv1 (0)
+}
+
+END

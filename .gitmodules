@@ -10,3 +10,15 @@
 [submodule "libraries/clipp"]
 	path = libraries/clipp
 	url = https://github.com/muellan/clipp.git
+[submodule "libraries/phnt"]
+	path = lwdk/include/phnt
+	url = https://github.com/winsiderss/phnt.git
+[submodule "libraries/json"]
+	path = libraries/json
+	url = https://github.com/nlohmann/json
+[submodule "libraries/cppcodec"]
+	path = libraries/cppcodec
+	url = https://github.com/tplgy/cppcodec
+[submodule "libraries/spdlog"]
+	path = libraries/spdlog
+	url = https://github.com/gabime/spdlog.git

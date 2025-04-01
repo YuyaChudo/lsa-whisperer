@@ -1,0 +1,1206 @@
+// Copyright (C) 2024 Evan McBroom
+//
+// Windows live id (wlid) rpc server (liveidsvc)
+//
+
+cpp_quote("// Copyright (C) 2024 Evan McBroom")
+cpp_quote("//")
+cpp_quote("// Windows live id (wlid) rpc server (liveidsvc)")
+cpp_quote("//")
+
+#include "ms-dtyp.idl"
+
+cpp_quote("#ifndef _SEC_WINNT_AUTH_TYPES")
+typedef struct _SEC_WINNT_AUTH_BYTE_VECTOR {
+    unsigned long ByteArrayOffset;
+    unsigned short ByteArrayLength;
+} SEC_WINNT_AUTH_BYTE_VECTOR, *PSEC_WINNT_AUTH_BYTE_VECTOR;
+cpp_quote("#endif")
+
+[
+    uuid("cc105610-da03-467e-bc73-5b9e2937458d"),
+    version(1.0),
+    pointer_default(unique)
+]
+interface LiveIdSvc {
+cpp_quote("#ifdef __cplusplus")
+cpp_quote("namespace IDCRL {")
+    typedef enum _CERTREQUESTFLAGS {
+        CERT_FROM_CACHE = 0x10000,
+        CERT_FROM_SERVER = 0x20000,
+    } CERTREQUESTFLAGS, *PCERTREQUESTFLAGS;
+
+    typedef enum _GENERATECERTTOKEN_FLAG {
+        TOKEN_FLAGS_ALL_BIT = 7,
+        TOKEN_URL_ESCAPED = 1,
+        TOKEN_NO_PIN = 2,
+        TOKEN_CERT_LOCALMACHINE = 4,
+    } GENERATECERTTOKEN_FLAG, *PGENERATECERTTOKEN_FLAG;
+
+    typedef enum _HIP_SOLUTION_FLAGS {
+        HIP_SOLUTION_FLAG_ALL_BIT = 3,
+        HIP_SOLUTION_FLAG_SOLVED_IMAGE = 1,
+        HIP_SOLUTION_FLAG_SOLVED_AUDIO = 2,
+    } HIP_SOLUTION_FLAGS, *PHIP_SOLUTION_FLAGS;
+
+    typedef enum _IDCRL_ERROR_CATEGORY {
+        IDCRL_REQUEST_BUILD_ERROR = 1,
+        IDCRL_REQUEST_SEND_ERROR = 2,
+        IDCRL_RESPONSE_RECEIVE_ERROR = 3,
+        IDCRL_RESPONSE_READ_ERROR = 4,
+        IDCRL_REPSONSE_PARSE_ERROR = 5,
+        IDCRL_RESPONSE_SIG_DECRYPT_ERROR = 6,
+        IDCRL_RESPONSE_PARSE_HEADER_ERROR = 7,
+        IDCRL_RESPONSE_PARSE_TOKEN_ERROR = 8,
+        IDCRL_RESPONSE_PUTCERT_ERROR = 9,
+        IDCRL_SERVER_INTERNAL_ERROR = 10,
+    } IDCRL_ERROR_CATEGORY, *PIDCRL_ERROR_CATEGORY;
+
+    typedef enum _IDENTITY_FLAG {
+        IDENTITY_ALL_BIT = 0x1fff7ff,
+        IDENTITY_SHARE_ALL = 255,
+        IDENTITY_LOAD_FROM_PERSISTED_STORE = 256,
+        IDENTITY_AUTHSTATE_ENCRYPTED = 512,
+        IDENTITY_DEVICEID_LOGICAL = 4096,
+        IDENTITY_FAST_CLOSE = 1024,
+    } IDENTITY_FLAG, *PIDENTITY_FLAG;
+
+    typedef enum _IDENTITY_FLAG_INTERNAL {
+        IDENTITY_DEVICEID_SYSTEM = 8192,
+        IDENTITY_DEVICEID_PHYSICAL = 16384,
+        IDENTITY_CONTEXT_CLASSIC_API = 0xffff8000,
+        IDENTITY_DONT_RW_PERSIST = 0x10000,
+        IDENTITY_CONTEXT_NO_NT_TOKEN = 0x20000,
+        IDENTITY_CONTEXT_APPCONTAINER_CALLER = 0x40000,
+        IDENTITY_CONTEXT_MODERN = 0x80000,
+        IDENTITY_CONTEXT_DEVICE = 0x100000,
+        IDENTITY_CONTEXT_SET_PACKAGEID = 0x200000,
+        IDENTITY_CONTEXT_CALLER_SID_OVERWRITE = 0x400000,
+        IDENTITY_CONTEXT_SET_APP_GUID = 0x800000,
+        IDENTITY_SUPPLEMENTAL_PASSWORD = 0x1000000,
+    } IDENTITY_FLAG_INTERNAL, *PIDENTITY_FLAG_INTERNAL;
+
+    typedef enum _LOGON_FLAG {
+        LOGONIDENTITY_ALL_BIT = 0x1fff3fff,
+        LOGONIDENTITY_DEFAULT = 0,
+        LOGONIDENTITY_ALLOW_OFFLINE = 1,
+        LOGONIDENTITY_FORCE_OFFLINE = 2,
+        LOGONIDENTITY_CREATE_OFFLINE_HASH = 4,
+        LOGONIDENTITY_ALLOW_PERSISTENT_COOKIES = 8,
+        LOGONIDENTITY_USE_EID_AUTH = 16,
+        LOGONIDENTITY_USE_LINKED_ACCOUNTS = 32,
+        LOGONIDENTITY_FEDERATED = 64,
+        LOGONIDENTITY_WLID = 128,
+        LOGONIDENTITY_AUTO_PARTNER_REDIRECT = 256,
+        LOGONIDENTITY_IGNORE_CACHED_TOKENS = 512,
+        LOGONIDENTITY_RESERVED_1 = 1024,
+        LOGONIDENTITY_USE_SINGLEUSECODE = 2048,
+        LOGONIDENTITY_RESERVED_2 = 0x1fff0000,
+    } LOGON_FLAG, *PLOGON_FLAG;
+
+    typedef enum _LOGON_FLAG_INTERNAL {
+        LOGONIDENTITY_RESERVED_SSO_GROUP = 12288,
+        LOGONIDENTITY_ONLY_CACHED_DID_WITH_AUTH = 1024,
+        LOGONIDENTITY_LOGON_TYPE_FILTER = 0xff0000,
+        LOGONIDENTITY_SECURE_DESKTOP = 0x1000000,
+        LOGONIDENTITY_USER_WAS_PROMPTED_UI = 0x40000000,
+    } LOGON_FLAG_INTERNAL, *PLOGON_FLAG_INTERNAL;
+
+    typedef enum _MULTIRSTPARAMS_FLAGS {
+        REQUEST_DEFAULT = 0,
+        REQUEST_NO_SLC = 1,
+    } MULTIRSTPARAMS_FLAGS, *PMULTIRSTPARAMS_FLAGS;
+
+    typedef enum _NOTIFICATION_ACTION_TYPE {
+        IDS_NOTIFY_ACTION_ALL_BIT = 7,
+        IDS_NOTIFY_ACTION_ADD = 1,
+        IDS_NOTIFY_ACTION_UPDATE = 2,
+        IDS_NOTIFY_ACTION_DELETE = 4,
+    } NOTIFICATION_ACTION_TYPE, *PNOTIFICATION_ACTION_TYPE;
+
+    typedef enum _NOTIFICATION_CHANGE_TYPE {
+        NOTIFICATION_CHANGE_ALL_BIT = 3,
+        IDS_USER_ACCOUNT_CHANGE = 1,
+        IDS_USER_PROPERTY_CHANGE = 2,
+    } NOTIFICATION_CHANGE_TYPE, *PNOTIFICATION_CHANGE_TYPE;
+
+    typedef enum _PASSPORTIDENTITYPROPERTY {
+        IDENTITY_MEMBER_NAME = 1,
+        IDENTITY_PUIDSTR = 2,
+    } PASSPORTIDENTITYPROPERTY, *PPASSPORTIDENTITYPROPERTY;
+
+    typedef enum _REQUEST_FLAG_DEPRECATED {
+        REQUEST_IGNORE_SLC_ERROR = 0x10000000,
+    } REQUEST_FLAG_DEPRECATED, *PREQUEST_FLAG_DEPRECATED;
+
+    typedef enum _SERVICETOKEN_REQUEST_FLAGS {
+        SERVICE_TOKEN_REQUEST_TYPE_NONE = 0,
+        SERVICE_TOKEN_REQUEST_IGNORE_CACHE = 0x20000,
+        SERVICE_TOKEN_REQUEST_TYPE_X509V3 = 8,
+    } SERVICETOKEN_REQUEST_FLAGS, *PSERVICETOKEN_REQUEST_FLAGS;
+
+    typedef enum _SERVICETOKENFLAGS {
+        SERVICE_TOKEN_TYPE_LEGACY_PASSPORT = 1,
+        SERVICE_TOKEN_TYPE_WEBSSO = 2,
+        SERVICE_TOKEN_TYPE_COMPACT_WEBSSO = 4,
+        SERVICE_TOKEN_TYPE_X509V3 = 8,
+        SERVICE_TOKEN_CERT_IN_MEMORY_PRIVATE_KEY = 16,
+        SERVICE_TOKEN_FROM_CACHE = 0x10000,
+        SERVICE_TOKEN_IGNORE_CACHE = 0x20000,
+        SERVICE_TOKEN_TYPE_SAML = 2,
+        SERVICE_TOKEN_TYPE_PROPRIETARY = 1,
+    } SERVICETOKENFLAGS, *PSERVICETOKENFLAGS;
+
+    typedef enum _SSO_FLAG {
+        SSO_ALL_BIT = 51,
+        SSO_DEFAULT = 0,
+        SSO_AUTOSIGNIN = 0,
+        SSO_NO_UI = 1,
+        SSO_NO_AUTO_SIGNIN = 2,
+    } SSO_FLAG, *PSSO_FLAG;
+
+    typedef enum _UPDATE_FLAG {
+        UPDATE_FLAG_ALL_BIT = 31,
+        DEFAULT_UPDATE_POLICY = 0,
+        OFFLINE_MODE_ALLOWED = 1,
+        NO_UI = 2,
+        SKIP_CONNECTION_CHECK = 4,
+        IDCRL_RESERVED_1 = 8,
+        SET_INITIALIZATION_COOKIES = 16,
+        UPDATE_DEFAULT = 0,
+    } UPDATE_FLAG, *PUPDATE_FLAG;
+
+    typedef enum _UPDATE_FLAG_DEPRECATED {
+        SET_EXTENDED_ERROR = 8,
+    } UPDATE_FLAG_DEPRECATED, *PUPDATE_FLAG_DEPRECATED;
+
+    typedef enum _WLIDUI_FLAG {
+        WLIDUI_ALL_BIT = 1023,
+        WLIDUI_DEFAULT = 0,
+        WLIDUI_DISABLE_REMEMBERME = 1,
+        WLIDUI_DISABLE_AUTOSIGNIN = 2,
+        WLIDUI_DISABLE_DIFFERENTUSER = 4,
+        WLIDUI_DISABLE_EID = 32,
+        WLIDUI_DISABLE_SIGNUPLINK = 64,
+        WLIDUI_DISABLE_SAVEDUSERS = 128,
+        WLIDUI_FORCE_SAVEPASSWORD = 256,
+        WLIDUI_FORCE_SMARTCARD = 512,
+    } WLIDUI_FLAG, *PWLIDUI_FLAG;
+
+    typedef enum CONNECT_UX_SCENARIO {
+        UX_SCENARIO_UNDEFINED = 0,
+        UX_SCENARIO_LOCAL_USER = 1,
+        UX_SCENARIO_DOMAIN_USER = 2,
+        UX_SCENARIO_MSA_CONNECTED = 3,
+        UX_SCENARIO_AAD_USER = 4,
+        UX_SCENARIO_INTERNET_USER = 5,
+        UX_SCENARIO_MSA_ASSOCIATED = 6,
+        UX_SCENARIO_NO_MSA_UPSELL = 7,
+        UX_SCENARIO_OOBE = 8,
+    } CONNECT_UX_SCENARIO, *PCONNECT_UX_SCENARIO;
+
+    typedef enum IDCRL_DEVICE_CONSENT_OPTIONS {
+        IDCRL_DEVICE_ID_CONSENT_MIN = 0,
+        IDCRL_DEVICE_ID_CONSENT_GRANT = 1,
+        IDCRL_DEVICE_ID_CONSENT_REVOKE = 2,
+        IDCRL_DEVICE_ID_CONSENT_MAX = 3,
+    } IDCRL_DEVICE_CONSENT_OPTIONS, *PIDCRL_DEVICE_CONSENT_OPTIONS;
+
+    typedef enum IDCRL_DEVICE_ID_OPTIONS {
+        IDCRL_DEVICE_ID_PHYSICAL = 8,
+        IDCRL_DEVICE_ID_FROMCACHE = 16,
+        IDCRL_DEVICE_ID_ACCESSCHECK = 32,
+        IDCRL_DEVICE_ID_NO_SIGNUP = 256,
+        IDCRL_DEVICE_ID_RENEW_CERT = 512,
+        IDCRL_DEVICE_ID_FORCE_CLOSE = 1024,
+    } IDCRL_DEVICE_ID_OPTIONS, *PIDCRL_DEVICE_ID_OPTIONS;
+
+    typedef enum IDCRL_DEVICE_ID_OPTIONS_INTERNAL {
+        IDCRL_DEVICE_ID_FORCENEWPASSWORD = 1,
+        IDCRL_DEVICE_ID_KEYROLLOVER = 4,
+        IDCRL_DEVICE_ID_SYSTEM = 64,
+        IDCRL_DEVICE_ID_RENEW_DA_TOKEN = 1024,
+        IDCRL_DEVICE_ID_NO_DA_TOKEN = 2048,
+        IDCRL_DEVICE_ID_GET_VALID = 8192,
+        IDCRL_DEVICE_ID_NO_ASSOCIATION_UPDATE = 16384,
+        IDCRL_DEVICE_ID_GET_VALID_DA_TOKEN = 0xffff8000,
+        IDCRL_DEVICE_ID_GET_SIGNED_TOKEN = 0x10000,
+        IDCRL_DEVICE_ID_RESERVED_REMOVE_CACHE = 0x10000000,
+    } IDCRL_DEVICE_ID_OPTIONS_INTERNAL, *PIDCRL_DEVICE_ID_OPTIONS_INTERNAL;
+
+    typedef enum IDCRL_OPTION_ID {
+        IDCRL_OPTION_ALL_BIT = 511,
+        IDCRL_OPTION_PROXY = 1,
+        IDCRL_OPTION_CONNECT_TIMEOUT = 2,
+        IDCRL_OPTION_SEND_TIMEOUT = 4,
+        IDCRL_OPTION_RECEIVE_TIMEOUT = 8,
+        IDCRL_OPTION_PROXY_PASSWORD = 16,
+        IDCRL_OPTION_PROXY_USERNAME = 32,
+        IDCRL_OPTION_ENVIRONMENT = 64,
+        IDCRL_OPTION_MSC_TIMEOUT = 128,
+        IDCRL_OPTION_LCID = 256,
+    } IDCRL_OPTION_ID, *PIDCRL_OPTION_ID;
+
+    typedef enum IDCRL_SETOPTIONS_FLAG {
+        IDCRL_SETOPTIONS_DEFAULT = 0,
+        IDCRL_SETOPTIONS_SET = 0,
+        IDCRL_SETOPTIONS_RESET = 1,
+    } IDCRL_SETOPTIONS_FLAG, *PIDCRL_SETOPTIONS_FLAG;
+
+    typedef enum IDCRL_USER_DEVICE_ASSOCIATION_TYPE {
+        IDCRL_USER_DEVICE_SYSTEM = 0,
+        IDCRL_USER_DEVICE_APP = 1,
+    } IDCRL_USER_DEVICE_ASSOCIATION_TYPE, *PIDCRL_USER_DEVICE_ASSOCIATION_TYPE;
+
+    typedef enum IDCRL_WEBAUTHOPTION {
+        IDCRL_WEBAUTH_NONE = 0,
+        IDCRL_WEBAUTH_REAUTH = 1,
+        IDCRL_WEBAUTH_PERSISTENT = 2,
+    } IDCRL_WEBAUTHOPTION, *PIDCRL_WEBAUTHOPTION;
+
+    typedef enum SIGNIN_USER_SCENARIO {
+        SIGNIN_SCENARIO_UNDEFINED = 0,
+        SIGNIN_SCENARIO_REAUTHENTICATE = 1,
+        SIGNIN_SCENARIO_ADD_ACCOUNT = 2,
+        SIGNIN_SCENARIO_ADD_SECONDARY_ACCOUNT = 3,
+        SIGNIN_SCENARIO_TRANSIENT_SIGNIN = 4,
+        SIGNIN_SCENARIO_MANAGE_ACCOUNT = 5,
+        SIGNIN_SCENARIO_OOBE = 6,
+    } SIGNIN_USER_SCENARIO, *PSIGNIN_USER_SCENARIO;
+
+    typedef enum SSO_GROUP {
+        SSO_GROUP_NONE = 0,
+        SSO_GROUP_LIVE = 32,
+    } SSO_GROUP, *PSSO_GROUP;
+
+    typedef enum SSO_GROUP_INTERNAL {
+        SSO_ALL_GROUPS = 32,
+    } SSO_GROUP_INTERNAL, *PSSO_GROUP_INTERNAL;
+
+    typedef enum SSO_GROUP_OPTION {
+        SSO_GROUP_OPTION_SESSION = 1,
+        SSO_GROUP_OPTION_PERSISTED = 2,
+    } SSO_GROUP_OPTION, *PSSO_GROUP_OPTION;
+
+    typedef enum SSO_GROUP_OPTION_INTERNAL {
+        SSO_GROUP_OPTION_ALL_BIT = 12291,
+        SSO_GROUP_OPTION_PERSISTED_ADD = 4096,
+        SSO_GROUP_OPTION_PERSISTED_REMOVE = 8192,
+    } SSO_GROUP_OPTION_INTERNAL, *PSSO_GROUP_OPTION_INTERNAL;
+
+    typedef enum TB_CLIENT_UX_SCENARIO {
+        TB_CLIENT_UX_SCENARIO_UNDEFINED = 0,
+        TB_CLIENT_UX_SCENARIO_UPSELL = 1,
+        TB_CLIENT_UX_SCENARIO_INTERRUPT = 2,
+        TB_CLIENT_UX_SCENARIO_OOBE = 3,
+    } TB_CLIENT_UX_SCENARIO, *PTB_CLIENT_UX_SCENARIO;
+cpp_quote("}")
+cpp_quote("#endif")
+
+    typedef enum _PolicyEncoding {
+        XmlEncoding = 0,
+        StringEncoding = 1,
+    } PolicyEncoding, *PPolicyEncoding;
+
+    typedef enum _WLIDTOKENTYPE {
+        TOKENTYPE_INVALID = 0,
+        TOKENTYPE_LEGACY = 1,
+        TOKENTYPE_X509 = 2,
+        TOKENTYPE_SAML = 3,
+        TOKENTYPE_COMPACT = 4,
+        TOKENTYPE_MOBILECOMPACT = 5,
+    } WLIDTOKENTYPE, *PWLIDTOKENTYPE;
+
+    typedef enum WLID_NOTIFICATION_TYPE {
+        WLID_IDENTITY_ASSOCIATED = 0x0001,
+        WLID_IDENTITY_DISASSOCIATED = 0x0002,
+        WLID_IDENTITY_CREATED = 0x0004,
+        WLID_IDENTITY_IMPORTED = 0x0008,
+        WLID_IDENTITY_DELETED = 0x0010,
+        WLID_IDENTITY_PROPCHANGED = 0x0020,
+        WLID_IDENTITY_CONNECTED = 0x0040,
+        WLID_IDENTITY_DISCONNECTED = 0x0080,
+        WLID_IDENTITY_KEYUPDATE = 0x0100,
+    } WLID_NOTIFICATION_TYPE, *PWLID_NOTIFICATION_TYPE;
+
+    typedef enum _WLIDProps {
+        WLIDProviderID = 0,
+        WLIDUserName = 1,
+        WLIDCid = 2,
+        WLIDIsMe = 3,
+        WLIDDisplayName = 4,
+        WLIDKeywords = 5,
+        WLIDKeyProviderName = 6,
+        WLIDKeyProviderContext = 7,
+        WLID_MAX_PROP = 8,
+    } WLIDProps, *PWLIDProps;
+
+    typedef enum _WlidPropertyindex {
+        UserOldEmailId = 0,
+        UserNewEmailId = 1,
+        UserFirstName = 2,
+        UserLastName = 3,
+        UserDisplayName = 4,
+        UserPropertyCount = 5,
+    } WlidPropertyindex, *PWlidPropertyindex;
+
+    typedef enum _WLID_PROV_ERR_HANDLING {
+        WlidProvErrBail = 1,
+        WlidProvErrMsgBox = 2,
+        WlidProvErrReprompt = 3,
+    } WLID_PROV_ERR_HANDLING, *PWLID_PROV_ERR_HANDLING;
+
+    typedef struct liveidsvc_0001 {
+        DWORD dwId;
+        ULONG cbValue;
+        PBYTE pbValue;
+    } liveidsvc_0001;
+
+    typedef struct liveidsvc_0002 {
+        [unique, string] LPWSTR wszDeviceId;
+        [unique, string] LPWSTR wszKeypair;
+        ULONG cbDeviceCert;
+        PBYTE pbDeviceCert;
+    } liveidsvc_0002;
+
+    typedef struct liveidsvc_0003 {
+        [unique, string] LPWSTR wszString1;
+        [unique, string] LPWSTR wszString2;
+    } liveidsvc_0003;
+
+    typedef struct _WLID_CONNECT_PARAM {
+        DWORD dwFlags;
+        DWORD LUID_LowPart;
+        LONG LUID_HighPart;
+        [unique, string] LPWSTR wszUserSid;
+        DWORD dwAccountType;
+    } WLID_CONNECT_PARAM, *PWLID_CONNECT_PARAM;
+
+    typedef struct _WLID_OPEN_HANDLE_DATA {
+        [unique, string] LPWSTR wszUserName;
+        DWORD dwSession;
+        DWORD LUID_LowPart;
+        LONG LUID_HighPart;
+        DWORD dwProcessID;
+        BOOL fIsActive;
+    } WLID_OPEN_HANDLE_DATA, *PWLID_OPEN_HANDLE_DATA;
+
+    typedef struct _WLID_CREDUI_CREDS {
+        USHORT cbHeaderLength;
+        USHORT cbStructureLength;
+        SEC_WINNT_AUTH_BYTE_VECTOR Authinfo;
+        ULONG RequestFlags;
+    } WLID_CREDUI_CREDS, *PWLID_CREDUI_CREDS;
+
+    typedef struct _WLID_SINGLE_ADDRESS {
+        ULONG cbAddressLen;
+        ULONG af;
+        [unique, size_is(cbAddressLen)] PBYTE pAddress;
+    } WLID_SINGLE_ADDRESS, *PWLID_SINGLE_ADDRESS;
+
+    typedef struct _WLIDIdentityProperty {
+        [unique, string] LPWSTR pszProperty;
+        [unique, string] LPWSTR pszValue;
+    } WLIDIdentityProperty, *PWLIDIdentityProperty;
+
+    typedef struct _WLIDAddrinfo {
+        DWORD dwCount;
+        DWORD dwMaxAddressLen;
+        [unique, size_is(dwMaxAddressLen)] PWLID_SINGLE_ADDRESS pAddrData;
+    } WLIDAddrinfo, *PWLIDAddrinfo;
+
+    typedef struct _WLIDinitialSettings {
+        DWORD dwUIEnabled;
+        LONG lClockSkew;
+        LONG lUIDefaultWidth;
+        LONG lUIDefaultHeight;
+        DOUBLE dHCRatioX;
+        DOUBLE dHCRatioY;
+    } WLIDinitialSettings, *PWLIDinitialSettings;
+
+    typedef struct _WLIDRequestParams {
+        [ref, string, range(2, 65535)] LPWSTR wszServiceTarget;
+        [unique, string] LPWSTR wszServicePolicy;
+        [unique, string] LPWSTR wszSupportingToken;
+        DWORD dwTokenFlags;
+        DWORD dwTokenParam;
+        PolicyEncoding policyEncoding; // PolicyEncoding
+        // Added in later versions of NT 10
+        //small unknown;
+        long __PADDING__[1];
+    } WLIDRequestParams, *PWLIDRequestParams;
+
+    typedef struct _WLIDAcquireTokenParams {
+        DWORD dwRequestFlags;
+        [unique, string] LPWSTR pFlowToken;
+        ULONGLONG hParentWindow;
+        [unique, string] LPWSTR pUXOverride;
+    } WLIDAcquireTokenParams, *PWLIDAcquireTokenParams;
+
+    typedef struct _WLIDAcquireTokenResults {
+        HRESULT hrAuthState;
+        HRESULT hrAuthRequired;
+        HRESULT hrRequestStatus;
+        LONG clockSkew;
+    } WLIDAcquireTokenResults, *PWLIDAcquireTokenResults;
+
+    typedef struct _WLIDResponseParams {
+        HRESULT hrAuthRequired;
+        HRESULT hrRequestStatus;
+        DWORD cbSessionKey;
+        [unique, size_is(cbSessionKey)] PBYTE pbSessionKey;
+        [unique, string] LPWSTR wszCID;
+        DWORD dwTokenType;
+        [unique, string] LPWSTR wszToken;
+        [unique, string] LPWSTR wszAuthorizationToken;
+        [unique, string] LPWSTR wszAuthChallenge;
+        [unique, string] LPWSTR wszinlineAuthUrl;
+        [unique, string] LPWSTR wszinlineEndAuthUrl;
+        [unique, string] LPWSTR wstrTokenURI;
+        [unique, string] LPWSTR wstrKeyPair;
+        hyper tCreateTime;
+        hyper tExpireTime;
+        // Added in later versions of NT 10
+        [unique, string] LPWSTR wstrUnknown;
+    } WLIDResponseParams, *PWLIDResponseParams;
+
+    typedef struct _WLIDSessionData {
+        [unique, string] LPWSTR pPuid;
+        [unique, string] LPWSTR pSessionId;
+        [unique, string] LPWSTR pDisplaySessionId;
+        [unique, string] LPWSTR pState;
+        [unique, string] LPWSTR pSessionType;
+        [unique, string] LPWSTR pRequestTime;
+        [unique, string] LPWSTR pExpirationTime;
+    } WLIDSessionData, *PWLIDSessionData;
+
+    typedef struct _WLIDTokenParams {
+        DWORD dwFlags;
+        ULONG tokenType;
+        [unique, string] LPWSTR pTokenUri;
+        [unique, string] LPWSTR pToken;
+        ULONG sessionKeyLengthBytes;
+        PUCHAR pSessionKey;
+        ULONG sessionKeyType;
+        [unique, string]  LPWSTR pCreateTime;
+        [unique, string]  LPWSTR pExpireTime;
+    } WLIDTokenParams, *PWLIDTokenParams;
+
+    typedef struct _WLIDSignedTokens {
+        [unique, string] LPWSTR pUserDASigned;
+        [unique, string] LPWSTR pDeviceDASigned;
+    } WLIDSignedTokens, *PWLIDSignedTokens;
+
+    typedef struct ProofOfPossessionCookieinfo {
+        [unique, string] LPWSTR name;
+        [unique, string] LPWSTR data;
+        ULONG flags;
+        [unique, string] LPWSTR p3pHeader;
+    } ProofOfPossessionCookieinfo, *PProofOfPossessionCookieinfo;
+
+    // procnum 0:
+    HRESULT WLIDPublishService(
+        [in, context_handle] HANDLE hUser,
+        [in, string] LPWSTR wstrServiceName
+    );
+
+    // procnum 1:
+    HRESULT WLIDUnpublishService(
+        [in, context_handle] HANDLE hUser,
+        [in, string] LPWSTR wstrServiceName
+    );
+
+    // procnum 2:
+    HRESULT WLIDResolveDevice(
+        [in, context_handle] HANDLE hUser,
+        [in, string] LPWSTR pwszDeviceName,
+        [out] PWLIDAddrinfo* pAddresses
+    );
+
+    // procnum 3:
+    HRESULT WLIDResolveUser(
+        [in, context_handle] HANDLE hUser,
+        [in, string] LPWSTR pwszUserName,
+        [in] DWORD p2, // Likely used for flags
+        [out, string] LPWSTR* pwszCID
+    );
+
+    // procnum 4:
+    HRESULT WLIDConnectIdentity(
+        [in, context_handle] HANDLE hUser,
+        [in] PWLID_CONNECT_PARAM pParam
+    );
+
+    // procnum 5:
+    HRESULT WLIDUpdateConnectedIdentity(
+        [in, context_handle] HANDLE hUser,
+        [in] DWORD flags
+    );
+
+    // procnum 6:
+    HRESULT WLIDCompleteConnect(
+        [in, string] LPWSTR wszNotificationString
+    );
+
+    // procnum 7:
+    HRESULT WLIDDisconnectIdentity(
+        [in, context_handle] HANDLE hUser
+    );
+
+    // procnum 8:
+    HRESULT WLIDCreateIdentity(
+        [in, context_handle] HANDLE hUser,
+        [in] LONGLONG Reserved, // Likely intended for future flags
+        [in, string] LPWSTR pwszUserName,
+        [in, string] LPWSTR pwszKeywords,
+        [out, string] LPWSTR* ppwszCID
+    );
+
+    // procnum 9:
+    HRESULT WLIDDeleteIdentity(
+        [in] DWORD dwFlags,
+        [in, string] LPWSTR pwszID,
+        [in, string] LPWSTR pwszKeywords
+    );
+
+    // procnum 10:
+    HRESULT WLIDImportIdentity(
+        [in, string] LPWSTR pwszUserName,
+        [in] DWORD dwCount,
+        [in] DWORD cbProps,
+        [in, size_is(cbProps)] PWLIDIdentityProperty pProps[]
+    );
+
+    // procnum 11:
+    HRESULT WLIDGetLocalDeviceName(
+        [out, string] wchar_t **p0
+    );
+
+    // procnum 12:
+    HRESULT WLIDCreateContext(
+        [in, ptr, string] LPWSTR pMemberName,
+        [in, ptr, string] LPWSTR pAdditionalParameter,
+        [in] LONGLONG Flags,
+        [out, context_handle] HANDLE* hIdentity
+    );
+
+    // procnum 13:
+    HRESULT WLIDCreateContextWithLogonId(
+        [in, ptr, string] LPWSTR wszMemberName,
+        [in, ptr, string] LPWSTR wszSid,
+        [in] unsigned long LUID_LowPart,
+        [in] long LUID_HighPart,
+        [in] LONGLONG Flags,
+        [out, context_handle] HANDLE* hIdentity
+    );
+
+    // procnum 14:
+    HRESULT WLIDSetAuthData(
+        [in, context_handle] HANDLE hIdentity,
+        [in] DWORD dwFlags, // May be 0
+        [in] DWORD cbAuthData,
+        [in, size_is(cbAuthData)] PBYTE pbAuthData[]
+    );
+
+    // procnum 15:
+    HRESULT WLIDDeleteContext(
+        // Should the logon id of the calling client be deleted.
+        // Appears to require being set to 1
+        [in] LONGLONG currentContext,
+        [in, out, context_handle] HANDLE* hIdentity // Handle to a logon id
+    );
+
+    // procnum 16:
+    HRESULT WLIDGetServiceConfig(
+        [in, string] LPWSTR wszPropertyName,
+        [out, string] LPWSTR *pwszPropertyValue
+    );
+
+
+    // [in, context_handle] HANDLE hIdentity,
+    // [in] __int64 dwRequestFlags,
+    // [in] int dwRequestCount,
+    // [in, ptr, size_is(dwRequestCount)] WLIDRequestParams* rgRequests,
+    // [in, unique, string] [unique] LPWSTR p4,
+    // [in] __int64 p5,
+    // [in, unique, string] [unique] LPWSTR p6,
+    // // Handle ordering was guessed
+    // [out] int* phrAuthState,
+    // [out] int* phrAuthRequired,
+    // [out] int* phrRequestStatus,
+    // [out] int* dwResponseCount,
+    // [out, size_is(,*dwResponseCount)] WLIDResponseParams** prgResponses,
+    // [out] int* p12
+
+    // procnum 17:
+    HRESULT WLIDAcquireTokens(
+        [in, context_handle] HANDLE hIdentity,
+        [in] hyper dwRequestFlags,
+        [in] long dwRequestCount,
+        [in, ptr, size_is(dwRequestCount)] PWLIDRequestParams rgRequests,
+        [in, unique, string] LPWSTR p4,
+        [in] hyper p5,
+        [in, unique, string] LPWSTR p6,
+        // Handle ordering was guessed
+        [out] long* phrAuthState,
+        [out] long* phrAuthRequired,
+        [out] long* phrRequestStatus,
+        [out] long* dwResponseCount,
+        [out, ref, size_is(,*dwResponseCount)] PWLIDResponseParams* prgResponses,
+        [out] long* p12
+    );
+
+    // procnum 18:
+    HRESULT WLIDUpdateToken(
+        [in, context_handle] HANDLE hIdentity,
+        [in] PWLIDTokenParams pToken
+    );
+
+    // procnum 19:
+    HRESULT WLIDAddOrDeleteColorSetCookie(
+        [in] BOOL Add // Adds or removes the Win8Colors cookie data
+    );
+
+    // procnum 20:
+    HRESULT WLIDWatsonReport(
+        [in] DWORD dwFlags,
+        [in, string] LPWSTR pwszApplicationName,
+        [in, string] LPWSTR pwszDescription,
+        [in, string] LPWSTR pwszFriendlyEventName,
+        [in, string] LPWSTR pwszEventName,
+        [in] DWORD dwWerParameterArrayLength,
+        [in, ptr, size_is(dwWerParameterArrayLength)] LPWSTR ppwszWerParameterArray[],
+        [in] DWORD dwFilePathArrayLength,
+        [in, ptr, size_is(dwFilePathArrayLength)] LPWSTR ppwszFilePathArray[]
+    );
+
+    // procnum 21:
+    HRESULT WLIDGetCachedTokens(
+        [in, context_handle] HANDLE hIdentity,
+        [in] LONGLONG dwRequestFlags,
+        [in] DWORD dwRequestCount,
+        [in, ptr, size_is(dwRequestCount)] WLIDRequestParams rgRequests[],
+        [out] PDWORD responseSize,
+        [out, size_is(, *responseSize)] PWLIDResponseParams* prgResponses
+    );
+
+    // procnum 22:
+    HRESULT WLIDGetExtendedError(
+        [in, context_handle] HANDLE hIdentity,
+        [in] LONGLONG Reserved, // Likely intended for future flags
+        [out] int* p2,
+        [out] int* p3,
+        [out, string] char** pszFileAndLine,
+        [out, string] char** pszRequest,
+        [out, string] char** pszResponse,
+        [out, string] LPWSTR* pwszHost,
+        [out] int* p8
+    );
+
+    // procnum 23:
+    HRESULT WLIDGetUserExtendedProperty(
+        [in, string] LPWSTR wszUserName,
+        [in, string] LPWSTR wszPropertyName,
+        [out, string] LPWSTR *pwszPropertyValue
+    );
+
+    // procnum 24:
+    HRESULT WLIDSetUserExtendedProperty(
+        [in, ptr, string] LPWSTR wszUserName,
+        [in, ptr, string] LPWSTR wszPropertyName,
+        [in, ptr, string] LPWSTR pwszPropertyValue
+    );
+
+    // procnum 25:
+    HRESULT WLIDGetIdentityProperty(
+        [in, context_handle] HANDLE hIdentity,
+        [in, string] LPWSTR wszPropertyName,
+        [out, string] LPWSTR *pwszPropertyValue);
+
+    // procnum 26:
+    HRESULT WLIDSetOptions(
+        [in] DWORD dwOptions,
+        [in, size_is(dwOptions)] struct liveidsvc_0001* Options[],
+        [in] DWORD dwFlags // IDCRL_SETOPTIONS_FLAG
+    );
+
+    // procnum 27:
+    HRESULT WLIDEnumIdentities(
+        [in] DWORD dwFlags,
+        [in, ptr, string] LPWSTR wszFilterPropertyName,
+        [in, ptr, string] LPWSTR wszFilterPropertyValue,
+        [out] PDWORD pdwMemberNames,
+        [out, size_is(, *pdwMemberNames,)] LPWSTR** prgwszMemberNames
+    );
+
+    // procnum 28:
+    HRESULT WLIDHasPersistedCredential(
+        [in, context_handle] HANDLE hIdentity,
+        [in, ptr, string] LPWSTR wszCredType, // PPCRL_CREDTYPE_*
+        [out] PBOOL pbHasPersistentCred
+    );
+
+    // procnum 29:
+    HRESULT WLIDPersistCredential(
+        [in, context_handle] HANDLE hIdentity,
+        [in] LPWSTR wszCredType, // PPCRL_CREDTYPE_*
+        [in] DWORD dwFlags // May be 0
+    );
+
+    // procnum 30:
+    HRESULT WLIDPersistCredentialForConnectedUser(
+        [in, context_handle] HANDLE hIdentity,
+        [in, ptr, string] LPWSTR wszCredType,
+        [in] DWORD dwFlags
+    );
+
+    // procnum 31:
+    HRESULT WLIDRemovePersistedCredential(
+        [in, context_handle] HANDLE hIdentity,
+        [in, ptr, string] LPWSTR wszCredType,
+        [in] DWORD dwFlags
+    );
+
+    // procnum 32:
+    HRESULT WLIDVerifyAssertion(
+        [in] DWORD cbCert,
+        [in, size_is(cbCert)] PBYTE pCert[],
+        [in, out] PDWORD pdwTTL,
+        [in] DWORD cbSignedMessageBlob,
+        [in, ptr, size_is(cbSignedMessageBlob)] BYTE pbSignedMessageBlob[],
+        [out, string] LPWSTR* pwszCID,
+        [out] PDWORD cbCertEncoded,
+        [out, size_is(, *cbCertEncoded)] PBYTE* pCertEncoded
+    );
+
+    // procnum 33:
+    HRESULT WLIDGetDeviceId(
+        [in, ptr, string] LPWSTR wcszAppId,
+        [in] DWORD dwFlags,
+        [in] DWORD additionalParamsSize, // Ignored
+        [in, ptr, size_is(additionalParamsSize)] BYTE pvAdditionalParams[],
+        [out, string] LPWSTR* wszDeviceId, // Optional
+        [out, string] LPWSTR* pwszKeypair,
+        [out] PDWORD pcbDeviceCert,
+        [out, size_is(, *pcbDeviceCert)] PBYTE* ppbDeviceCert
+    );
+
+    // procnum 34:
+    HRESULT WLIDProvisionDeviceId(
+        [in, ptr, string] LPWSTR wcszAppId,
+        [in] DWORD dwDeviceType,
+        [in] DWORD dwFlags
+    );
+
+    // procnum 35:
+    HRESULT WLIDGetDeviceIdEx(
+        [in, ptr, string] LPWSTR wcszAppId,
+        [in] DWORD dwDeviceType,
+        [in] DWORD dwFlags,
+        [in] DWORD additionalParamsSize, // Ignored
+        [in, ptr, size_is(additionalParamsSize)] BYTE pvAdditionalParams[], // Ignored
+        [out, string] LPWSTR* pwszDeviceId,
+        [out, string] LPWSTR* pwszKeypair,
+        [out] PDWORD pcbDeviceCert,
+        [out, size_is(, *pcbDeviceCert)] PBYTE* ppbDeviceCert
+    );
+
+    // procnum 36:
+    HRESULT WLIDRenewDeviceId(
+        [in, ptr, string] LPWSTR wcszAppId,
+        [in] DWORD dwDeviceType,
+        [in] DWORD dwFlags
+    );
+
+    // procnum 37:
+    HRESULT WLIDDeProvisionDeviceId(
+        [in, ptr, string] LPWSTR wcszAppId,
+        [in] DWORD dwDeviceType,
+        [in] DWORD dwFlags
+    );
+
+    // procnum 38:
+    HRESULT WLIDEnumDevices(
+        [in, ptr, string] LPWSTR wszHostingAppId,
+        [in] DWORD dwFlags,
+        [in] DWORD cbAdditionalParamSize, // May be 0
+        [in, ptr, size_is(cbAdditionalParamSize)] BYTE pvAdditionalParams[],
+        [in, out] PDWORD dwDevices,
+        [out, size_is(, *dwDevices)] liveidsvc_0002** rgDevices
+    );
+
+    // procnum 39:
+    HRESULT WLIDAssociateDeviceToUser(
+        [in, ptr, string] LPWSTR wszHostingAppId,
+        [in, context_handle] HANDLE hIdentity,
+        [in, ptr, string] LPWSTR pwszFriendlyName,
+        [in] DWORD dwAssocType
+    );
+
+    // procnum 40:
+    HRESULT WLIDDisassociateDeviceFromUser(
+        [in, ptr, string] LPWSTR wszHostingAppId,
+        [in, context_handle] HANDLE hIdentity,
+        [in] DWORD dwAssocType
+    );
+
+    // procnum 41:
+    HRESULT WLIDEnumerateUserAssociatedDevices(
+        [in, context_handle] HANDLE hIdentity,
+        [in] DWORD dwFlags, // Guessed
+        [in, ptr, string] LPWSTR pwszDeviceName, // Guessed
+        [out] PDWORD pdwDevicePropertyCount, // Guessed
+        [out, size_is(, *pdwDevicePropertyCount)] liveidsvc_0003** prgDeviceProperties // Guessed
+    );
+
+    // procnum 42:
+    HRESULT WLIDUpdateUserAssociatedDeviceProperties(
+        [in, ptr, string] LPWSTR pwszDeviceName, // Guessed
+        [in, context_handle] HANDLE hIdentity,
+        [in] DWORD dwFlags, // Guessed
+        [in] DWORD dwDevicePropertyCount, // Guessed
+        [in, ptr, size_is(dwDevicePropertyCount)] struct liveidsvc_0003 rgDeviceProperties[] // Guessed
+    );
+
+    // procnum 43:
+    HRESULT WLIDCreateContextForLinkedIdentity(
+        [in, context_handle] HANDLE hIdentity,
+        [in] LONGLONG Reserved, // Likely intended for future flags
+        [in, string] LPWSTR wszMemberName,
+        [out, context_handle] HANDLE* hLinkedIdentity
+    );
+
+    // procnum 44:
+    HRESULT WLIDAddUserToSsoGroup(
+        [in, string] LPWSTR wszIdentityName,
+        [in] DWORD dwFlags,
+        [in] DWORD dwSSOGroup
+    );
+
+    // procnum 45:
+    HRESULT WLIDGetUsersFromSsoGroup(
+        [in] DWORD dwFlag,
+        [in] DWORD dwSsoGroup,
+        [out] PDWORD pdwMemberNames,
+        [out, size_is(, *pdwMemberNames)] LPWSTR* prgwszMemberNames
+    );
+
+    // procnum 46:
+    HRESULT WLIDRemoveUserFromSsoGroup(
+        [in, string] LPWSTR wszIdentityName,
+        [in] DWORD dwFlags,
+        [in] DWORD dwSSOGroup
+    );
+
+    // procnum 47:
+    HRESULT WLIDGetAuthError(
+        [in, context_handle] HANDLE hIdentity,
+        [in] LONGLONG Reserved, // Likely intended for future flags
+        [in, ptr, string] LPWSTR wszServiceTarget, // Optional
+        [out, string] LPWSTR* pwszErrorXml
+    );
+
+    // procnum 48:
+    HRESULT WLIDGetDeviceShortLivedToken(
+        [out, string] LPWSTR *ppszDeviceToken
+    );
+
+    // procnum 49:
+    HRESULT WLIDGetHIPChallenge(
+        [in, context_handle] HANDLE hIdentity,
+        [in, string] LPWSTR wszChallengeName, // PPCRL_HIPCHALLENGE_*
+        [out, string] LPWSTR *pwszChallengeValue
+    );
+
+    // procnum 50:
+    HRESULT WLIDSetHIPSolution(
+        [in, context_handle] HANDLE hIdentity,
+        [in, string] LPWSTR wszResponseType,
+        [in, string] LPWSTR wszHipSolution,
+        [in] DWORD dwHipSolutionFlag // Solution type
+    );
+
+    // procnum 51:
+    HRESULT WLIDSetDefaultUserForTarget(
+        [in, context_handle] HANDLE hIdentity,
+        [in, ptr, string] LPWSTR wszIdentityName,
+        [in] DWORD dwFlags,
+        [in, ptr, string] LPWSTR wszServiceTarget
+    );
+
+    // procnum 52:
+    HRESULT WLIDGetDefaultUserForTarget(
+        [in] DWORD dwFlags,
+        [in, string] LPWSTR wszServiceTarget,
+        [out, string] LPWSTR* pwszMemberName
+    );
+
+    // procnum 53:
+    HRESULT WLIDIsKioskMode(
+        [out] BOOL* bIsKioskMode
+    );
+
+    // procnum 54:
+    HRESULT WLIDGetConfigString(
+        [in, string] LPWSTR wszCfgType,
+        [out, string] LPWSTR *pwszCfgValue
+    );
+
+    // procnum 55:
+    HRESULT WLIDGetSvcEnvironment(
+        [out, string] LPWSTR *pwszSvcEnvironment
+    );
+
+    // procnum 56:
+    HRESULT WLIDGetIdName(
+        [in, context_handle] HANDLE hIdentity,
+        [out, string] LPWSTR *pwszCurrentUser
+    );
+
+    // procnum 57:
+    HRESULT WLIDGetConfigDWORDValue(
+        [in] DWORD dwKey,
+        [out] PDWORD pdwValue
+    );
+
+    // procnum 58:
+    HRESULT WLIDGetUserPropertiesFromSystemStore(
+        [in, string] LPWSTR pszUserName,
+        [out] PDWORD pdwPropCount,
+        [out, size_is(, *pdwPropCount)] PWLIDIdentityProperty* ppProps
+    );
+
+    // procnum 59:
+    HRESULT WLIDSetUserPropertiesToSystemStore(
+        [in, string] LPWSTR pszUserName,
+        [in] DWORD dwPropCount,
+        [in, size_is(,dwPropCount)] PWLIDIdentityProperty* pProps
+    );
+
+    // procnum 60:
+    HRESULT WLIDinitializeEx(
+        [in, string] LPWSTR wszAppId,
+        [in, string] LPWSTR wszReserved,
+        [in] DWORD dwSettings, // Name was guessed. Value is ignored
+        [out] PWLIDinitialSettings* pSettings
+    );
+
+    // procnum 61:
+    HRESULT WLIDEnableTrace(
+    );
+
+    // procnum 62:
+    HRESULT WLIDDisableTrace(
+    );
+
+    // procnum 63:
+    HRESULT WLIDGetOneTimeCredential(
+        [in, context_handle] HANDLE hIdentity,
+        [in] DWORD dwFlags,
+        [in, ptr, string] LPWSTR wcszAppId,
+        [in, ptr, string] LPWSTR wcszTarget,
+        [in, ptr, string] LPWSTR wcszPolicy,
+        [in, ptr, string] LPWSTR wcszAdditionalParams,
+        [out, string] LPWSTR* pwszWebAuthUrl,
+        [out, string] LPWSTR* pwszOneTimeCredential
+    );
+
+    // procnum 64:
+    HRESULT WLIDGetIssuerCertificate(
+        [in] DWORD dwFlags,
+        [in] DWORD cbCertEncoded,
+        [in, ptr, size_is(cbCertEncoded)] BYTE pbCertEncoded[], // Used to call CertCreateCertificateContext
+        [out] PDWORD pcbIssuerCert,
+        [out, size_is(, *pcbIssuerCert)] PBYTE* ppbIssuerCert
+    );
+
+    // procnum 65:
+    HRESULT WLIDCreateContextWithChallenge(
+        [in, ptr, string] LPWSTR wszMemberName,
+        [in, ptr, string] LPWSTR wszChallenge,
+        [in] LONGLONG dwReserved, // Likely intended for future flags
+        [out, context_handle] HANDLE* hIdentity
+    );
+
+    // procnum 66:
+    HRESULT WLIDGetDefaultUserForTargetEx(
+        [in] LONGLONG Reserved, // Likely intended for future flags
+        [in, string] LPWSTR wszServiceTarget,
+        [in, ptr, string] LPWSTR wszChallenge,
+        [out, string] LPWSTR* pwszMemberName
+    );
+
+    // procnum 67:
+    HRESULT WLIDSendOneTimeCode(
+        [in, context_handle] HANDLE hIdentity,
+        // The values are directly used in the fully populated OTC request.
+        [in, string] LPWSTR wszPurpose,
+        [in, string] LPWSTR wszChannel,
+        [in, string] LPWSTR wszMobilenum,
+        [in] DWORD lcid,
+        [in] LONGLONG Reserved // Likely intended for future flags
+    );
+
+    // procnum 68:
+    HRESULT WLIDGetUserPropertiesFromHandle(
+        [in, context_handle] HANDLE hIdentity,
+        [out] PDWORD pdwPropCount,
+        [out, size_is(, *pdwPropCount)] PWLIDIdentityProperty* ppProps
+    );
+
+    // procnum 69:
+    HRESULT WLIDGetKeyLatest(
+        [in, context_handle] HANDLE hIdentity,
+        [in] LONGLONG dwFlags,
+        [in, string] LPWSTR wszPurpose,
+        [out, string] LPWSTR* pwszKeyVersion,
+        [out, string] LPWSTR* pwszKeyMaterial,
+        [out] LONGLONG* pKeyVersionTimeStamp
+    );
+
+    // procnum 70:
+    HRESULT WLIDGetKeyWithVersion(
+        [in, context_handle] HANDLE svcHandle,
+        [in] DWORD dwFlags,
+        [in, string] LPWSTR wszPurpose,
+        [in, ptr, string] LPWSTR wszVersion,
+        [in] LONGLONG versionTimeStamp,
+        [out, string] LPWSTR* pwszKeyMaterial);
+
+    // procnum 71:
+    HRESULT WLIDGetOpenHandlesData(
+        [out] PDWORD pHandleDataCount,
+        [out, size_is(, *pHandleDataCount)] PWLID_OPEN_HANDLE_DATA* ppHandleData
+    );
+
+    // procnum 72:
+    HRESULT WLIDGetSignedTokens(
+        [out] PWLIDSignedTokens *ppTokens
+    );
+
+    // procnum 73:
+    HRESULT WLIDGetDeviceDAToken(
+        [out, string] LPWSTR *pDAToken
+    );
+
+    // procnum 74:
+    HRESULT WLIDGetProofOfPossessionTokens(
+        [in, unique, string] LPWSTR wszUserName,
+        [in] GUID * pRelatedActivityId, // Can be any value
+        [out] PDWORD pTokenCount,
+        [out, size_is(, *pTokenCount)] PProofOfPossessionCookieinfo* ppTokens
+    );
+
+    // procnum 75:
+    HRESULT WLIDRegisterUserIdkey(
+        [in, unique, string] LPWSTR accountId,
+        [in, unique, string] LPWSTR pLoginProofToken,
+        [in, unique, string] LPWSTR pUserIdKeyName,
+        [in] BOOL useStrongAuth,
+        [in] ULONGLONG hParentWindow // Guessed
+    );
+
+    // procnum 76:
+    HRESULT WLIDUpdateDeviceLicenseinfo(
+    );
+
+    // procnum 77:
+    HRESULT WLIDManageApprover(
+        [in] DWORD localActionType,
+        [in, unique, string] LPWSTR pAppVersion,
+        [in, unique, string] LPWSTR pApplicationSid,
+        [in, unique, string] LPWSTR pChannelId,
+        [in, unique, string] LPWSTR keyIdentifier, // Totp key in the cache
+        [in, unique, string] LPWSTR pUserName,
+        [out] PBOOL bIsTotpEnabled
+    );
+
+    // procnum 78:
+    HRESULT WLIDListSessions(
+        [in, unique, size_is(puidCount)] wchar_t* ppPuids[],
+        [in] DWORD puidCount,
+        [in] BOOL checkRegistrationFlag,
+        [in, unique, string] LPWSTR pAppVersion,
+        [out, size_is(, *sessionCount)] PWLIDSessionData* pSessionData,
+        [out] PDWORD sessionCount,
+        [out, size_is(, *notRegisteredPuidCount,)] LPWSTR** pNotRegisteredPuids,
+        [out] PDWORD notRegisteredPuidCount
+    );
+
+    // procnum 79:
+    HRESULT WLIDApproveSession(
+        [in, unique, string] LPWSTR pUserName,
+        [in, unique, string] LPWSTR pAppVersion,
+        [in, unique, string] LPWSTR pSessionID,
+        [in, unique, string] LPWSTR pSessionState,
+        [in, unique, string] LPWSTR pSessionType,
+        [in] LONGLONG p5 // Used in the request
+    );
+
+    // procnum 80:
+    HRESULT WLIDGetScenarioInlineUrlWithContextData(
+        [in] DWORD serverScenarioId, // 1-7. Most likely IDCRL::SIGNIN_USER_SCENARIO
+        [out, string] LPWSTR* inlineUrl
+    );
+
+    // procnum 81:
+    HRESULT WLIDGetinlineUrlContextData(
+        [out, string] LPWSTR *ppwszInlineUrlData
+    );
+    
+    // // procnum 71:
+    // HRESULT WLIDGetOpenHandlesData(
+    //     [out] PDWORD pHandleDataCount,
+    //     [out, size_is(, *pHandleDataCount)] PWLID_OPEN_HANDLE_DATA* ppHandleData
+    // );
+
+    // procnum 82:
+    HRESULT WLIDAcquireTokensWithNGC(
+        [in, context_handle] HANDLE hIdentity,
+        [in] hyper dwRequestFlags,
+        [in] long dwRequestCount,
+        [in, ptr, size_is(dwRequestCount)] WLIDRequestParams* rgRequests,
+        [in, unique, string] LPWSTR p4,
+        [in] hyper p5,
+        [in, unique, string] LPWSTR p6,
+        // Handle ordering was guessed
+        [out] long* phrAuthState,
+        [out] long* phrAuthRequired,
+        [out] long* phrRequestStatus,
+        [out] long* dwResponseCount,
+        [out, ref, size_is(,*dwResponseCount)] WLIDResponseParams** prgResponses,
+        [out] long* p12
+    );
+
+    // procnum 83:
+    HRESULT WLIDGetTotpCode(
+        [in, string] LPWSTR wszUserPuid,
+        [in] DWORD localTotpCode, // 1-7
+        [out, string] LPWSTR* pwszLocalTotpCode,
+        [out] PDWORD p3, // Will be set to a hardcoded value which is currently 30000
+        [out] int* p4
+    );
+
+    // procnum 84:
+    HRESULT WLIDCleanupIdentity(
+        [in, string] LPWSTR userSid
+    );
+
+    // procnum 85:
+    HRESULT WLIDGetAppData(
+        [in, string] LPWSTR wcszAppId,
+        [in] GUID * pRelatedActivityId, // Can be any value
+        [out] PBOOL pbIsFirstParty
+    );
+
+    // procnum 86:
+    HRESULT WLIDProvisionIdentityWithTransferToken(
+        [in] GUID * pRelatedActivityId, // Can be any value
+        [in, ptr, string] LPWSTR wcszAppId, // In the format "{GUID}"
+        [in, ptr, string] LPWSTR wcszBinarySecurityToken, // JWT encoded ps:LoginProofToken value
+        [in] DWORD dwFlags,
+        [in] BOOL bConnect,
+        [out] PBOOL pbIsConnected,
+        [out, context_handle] HANDLE* hIdentity
+    );
+}

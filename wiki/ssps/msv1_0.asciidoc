@@ -1,0 +1,360 @@
+ifdef::env-github[]
+:note-caption: :pencil2:
+endif::[]
+
+= Microsoft Authentication Package v1.0
+:toc: macro
+
+The msv1_0 authentication package (AP) supports local machine logons.
+It is also the security package (SP) for NTLM challenge-response authentication on a network.
+
+toc::[]
+
+== Functions
+
+The protocol messages that msv1_0 supports is documented on MSDN and included here for conveniencefootnote:[https://docs.microsoft.com/en-us/windows/win32/api/ntsecapi/ne-ntsecapi-msv1_0_protocol_message_type[MSV1_0_PROTOCOL_MESSAGE_TYPE enumeration (ntsecapi.h)]]:
+
+[%header]
+|===
+| Id     | Message Type               | CLI Support        | NT Version | Internal Function
+| `0x00` | `Lm20ChallengeRequest`     | :heavy_check_mark: | `>=3.5`    | `MspLm20Challenge`
+| `0x01` | `Lm20GetChallengeResponse` | :heavy_check_mark: | `>=3.5`    | `MspLm20GetChallengeResponse`
+| `0x02` | `EnumerateUsers`           | :heavy_check_mark: | `>=3.5`    | `MspLm20EnumUsers`
+| `0x03` | `GetUserInfo`              | :heavy_check_mark: | `>=3.5`    | `MspLm20GetUserInfo`
+| `0x04` | `ReLogonUsers`             | :heavy_minus_sign: | `>=3.5`    | `MspLm20ReLogonUsers`
+| `0x05` | `ChangePassword`           |                    | `>=3.5`    | `MspLm20ChangePassword`
+| `0x06` | `ChangeCachedPassword`     | :heavy_check_mark: | `>=4.0`    | `MspLm20ChangePassword`
+| `0x07` | `GenericPassthrough`       | _Planned_          | `>=5.0`    | `MspLm20GenericPassthrough`
+| `0x08` | `CacheLogon`               | _Planned_          | `>=5.0`    | `MspLm20CacheLogon`
+| `0x09` | `SubAuth`                  |                    | `>=5.0`    | `MspNtSubAuth`
+| `0x0A` | `DeriveCredential`         | :heavy_check_mark: | `>=5.0`    | `MspNtDeriveCredential`
+| `0x0B` | `CacheLookup`              | _Planned_          | `>=5.0`    | `MspLm20CacheLookup`
+| `0x0C` | `SetProcessOption`         | :heavy_check_mark: | `>=5.1`    | `MspSetProcessOption`
+| `0x0D` | `ConfigLocalAliases`       |                    | `>=6.0`    | `MspConfigLocalAliases`
+| `0x0E` | `ClearCachedCredentials`   | :heavy_check_mark: | `>=6.0`    | `MspLm20ClearCachedCredentials`
+| `0x0F` | `LookupToken`              |                    | `>=6.1`    | `MspLookupToken`
+| `0x10` | `ValidateAuth`             | :x:                | `>=6.2`    | `MspValidateAuth`
+| `0x11` | `CacheLookupEx`            | _Planned_          | `>=6.2`    | `MspLm20CacheLookup`
+| `0x12` | `GetCredentialKey`         | :heavy_check_mark: | `>=6.2`    | `MspGetCredentialKey`
+| `0x13` | `SetThreadOption`          | :heavy_check_mark: | `>=6.2`    | `MspSetThreadOption`
+| `0x14` | `DecryptDpapiMasterKey`    | :x:                | `>=6.4`    | `MspDecryptDpapiMasterKey`
+| `0x15` | `GetStrongCredentialKey`   | :heavy_check_mark: | `>=6.4`    | `MspGetStrongCredentialKey`
+| `0x16` | `TransferCred`             | :x:                | `>=10.0`   | `MspTransferCreds`
+| `0x17` | `ProvisionTbal`            | :heavy_check_mark: | `>=10.0`   | `MspProvisionTbal`
+| `0x18` | `DeleteTbalSecrets`        | :heavy_check_mark: | `>=10.0`   | `MspDeleteTbalSecrets`
+|===
+
+NOTE: The internal function for each message type will be located in `msv1_0.dll`.
+
+=== CacheLogon
+
+Stores logon information in a logon session's cache, located in the registry under `HKLM\Security\Cache`.
+The routine is used by the kerberos package to cache data from the Privilege Attribute Certificate (PAC) for a ticket for later recovery using the `CacheLookup` call.
+This is the same cache used by `LsaApLogonUserEx2` to store user data for future logon attempts when Netlogon is unavailable.
+The command is restricted to only being callable by LSASS itself and as such was originally outside the scope of LSA Whisperer.
+The call has been put in scope to assist with testing the `CacheLookup` call.
+
+=== CacheLookup
+
+Recovers logon information in a logon session's cache.
+The information may include the associated user's NT OWF hash amongst other data.
+The command is restricted to only being callable by LSASS itself and as such was originally outside the scope of LSA Whisperer.
+The call been put in scope to assist with credential recovery.
+
+=== CacheLookupEx
+
+The command is restricted to only being callable by LSASS itself and as such was originally outside the scope of LSA Whisperer.
+The call been put in scope to assist with credential recovery.
+
+=== ChangeCachedPassword
+
+This dispatch routine changes a password in the logon cache.
+This is used when the password is changed on the domain controller using some other mechanism and the locally cached version needs to be updated to match the new value.
+For example, RAS handles changing the passwords on the domain but then needs to update the cached copy so the user can still access servers.
+`SeTcbPrivilege` is required if you are changing the cached entry for someone else.
+
+```
+msv1_0 MsV1_0ChangeCachedPassword --domain {name} --account {name} --oldpass {password} --newpass {password}
+```
+
+=== ChangePassword
+
+Not implemented.
+Appears at first to be coercible, but LSASS will impersonate itself and remove the admin (`S-1-5-32-544`) sid before making a connection to another computer.
+
+=== ClearCachedCredentials
+
+Clear the credentials in the local NTLM logon cache.
+`SeTcbPrivilege` is required.
+
+```
+msv1_0 MsV1_0ClearCachedCredentials
+```
+
+=== DecryptDpapiMasterKey
+
+Return a decrypted master key when provided pointers to an appropriate DPAPI credential key and other input data for a logon session.
+The command is out of scope for the project becuase it would require the tool to supply valid pointers for LSASS's memory space.
+This is a memory corruption issue that was reported to MSRC.
+MSRC closed the report with the issue marked as a non-fix item.
+
+=== DeleteTbalSecrets
+
+Clear the Trusted Boot Auto-Logon (TBAL) secrets in the System vault.<sup>2</sup>
+
+```
+msv1_0 MsV1_0DeleteTbalSecrets
+```
+
+=== DeriveCredential
+
+Get the master key (MK) encryption key for a local user.
+The MK Encryption Key is the https://en.wikipedia.org/wiki/HMAC[SHA1 HMAC] for a provided message using a user's NT OWF or SHA OWF hash as the key, specified by the logon session id, and the associated user's SID as the message.
+
+The NT OWF hash https://www.passcape.com/index.php[was originally used as the MK encryption key] but was updated to instead be the SHA OWF to prevent users decrypting a master key by recovering an NT OWF hash from the SAM.
+Although although Windows now uses SHA OWF, the command still supports the legacy option.
+The `--sha1v2` argument specifies to use the SHA OWF hash instead of the NT OWF hash.
+The command will fail if the user does not have the `SeTcbPrivilege` privilege and specifies a session id for another user or if credential isolation is enabled.
+
+```
+msv1_0 MsV1_0DeriveCredential --luid {session id} [--sha1v2] --message {ascii hex}
+```
+
+=== EnumerateUsers
+
+Enumerates all interactive, service, and batch logons managed by MSV1_0.
+The machine account logon will not be included in the list.
+
+```
+msv1_0 MsV1_0EnumerateUsers
+```
+
+=== GenericPassthrough
+
+This dispatch routine passes any of the other dispatch routines to the domain controller.
+The authentication package on the domain controller may choose to reject certain dispatch requests.
+
+=== GetCredentialKey
+
+Return all possible DPAPI credential keys from the primary credential structure for the logon session, regardless of the associated user's account type (e.g. local or domain).
+The command will fail if the user does not have the `SeTcbPrivilege` privilege or credential isolation is enabled.
+
+The primary credential structure contains fields for an LM OWF hash, NT OWF hash, SHA OWF hash, and a "secure" credential key.
+Only 2 of these fields will be returned.
+The the SHA OWF hash will always be returned which may be used as the DPAPI credential key if the account is local.
+The 2nd key will either be the value of the "secure" credential key field if it is present or otherwise the NT OWF hash.
+
+The "secure" credential key has introduced in NT 1607 and will not be present on older hosts.
+The 2nd key may be used if the account is a domain account.
+The DPAPI credential keys may be used with a user's SID to derive the master key (MK) encryption key to decrypt the user's master key or backup key files.
+
+In some situations the "secure" credential key field for a logon session on a non-domain joined host will be populated with a copy of the account's SHA OWF hash.
+In those situations the SHA OWF and "secure" credential key fields will returned but they will be the same value.
+What causes this situation has not been identified.
+
+```
+msv1_0 MsV1_0GetCredentialKey --luid {session id}
+```
+
+NOTE: The Cred Key is the same key referred to by Mimikatz as "DPAPI" under the "Primary" section of the command output for `sekurlsa::msv`.
+
+=== GetStrongCredentialKey
+
+Return the appropriate DPAPI credential key to use from the primary credential structure for the logon session.
+Please refer to `GetCredentialKey` for more information about primary credentials.
+The SHA OWF hash will be returned for local accounts and the NT OWF has or "secure" credential key will be returned for domain accounts.
+
+Additional handling is also done for GMSA credentials.
+For GMSA accounts, the cleartext password for the service account is retrieved and converted to its NT OWF and SHA OWF equivalents for the primary credential structure if needed before the structure is referenced for the appropriate DPAPI credential key for the account.
+
+The above description is how LSA Whisperer will operate when using the command but the command does have a 2nd mode of operation.
+In the 2nd mode, the user should supply pointers to a SID and either a cleartext password or an NT OWF hash.
+The account type for the SID will then be determined (e.g. local or group/domain) and then the appropriate DPAPI credential key is returned for the associated user.
+The 2nd mode is out of scope for the project becuase it would require the tool to supply valid pointers for LSASS's memory space.
+This is a memory corruption issue that was reported to MSRC.
+MSRC closed the report with the issue marked as a non-fix item.
+
+```
+msv1_0 MsV1_0GetStrongCredentialKey --luid {session id} [--protected-user]
+```
+
+NOTE: The Cred Key is the same key referred to by Mimikatz as "DPAPI" under the "Primary" section of the command output for `sekurlsa::msv`.
+
+=== GetUserInfo
+
+Get information about a session id.
+
+```
+msv1_0 MsV1_0GetUserInfo --luid {session id}
+```
+
+=== Lm20ChallengeRequest
+
+Get a challenge that may be delivered to a host that initiated an NTLMv2 logon.
+Once a challenge response is received, it may be passed to `LsaLogonUser` with a `LogonType` of `MsV1_0Lm20Logon` to complete the logon.
+
+```
+msv1_0 MsV1_0Lm20ChallengeRequest
+```
+
+=== Lm20GetChallengeResponse
+
+Get the client NTLM response data for the challenge received from a server.
+The command is used by at least the LanMan redirector but may be used by more software.
+The command supports several flags:
+
+- `--gcr-allow-lm`
+- `--gcr-allow-no-target`
+- `--gcr-allow-ntlm`
+- `--gcr-machine-credential`
+- `--gcr-ntlm3-parms`
+- `--gcr-target-info`
+- `--gcr-use-oem-set`
+- `--gcr-use-owf-password`
+- `--gcr-vsm-protected-password`
+- `--generate-client-challenge`
+- `--return-non-nt-user-session-key`
+- `--return-primary-logon-domain-name`
+- `--return-primary-username`
+- `--return-reserved-parameter`
+- `--use-primary-password`
+
+`msv1_0` does allow the caller to explicitly specify a password, but LSA Whisperer currently only supports using the primary password for the specific logon session.
+So you will want to at least specify the `--use-primary-password` flag when issuing this command.
+The command will fail if the user does not have the `SeTcbPrivilege` privilege and specifies a session id for another user.
+
+On a domain joined host you may use the `--gcr-machine-credential` flag to generate a response using the primary credentials for the machine account (e.g., session 999).
+You may also generate responses for any logged on domain users and a few additional builtin accounts that will be present in the output of `EnumerateUsers`.
+
+```
+msv1_0 MsV1_0Lm20GetChallengeResponse --luid {session id} --challenge {challenge to clients} [flags...]
+```
+
+=== ProvisionTbal
+
+Provision the Trusted Boot Auto-Logon (TBAL) LSA secrets for a logon session.footnote:[https://www.passcape.com/index.php?section=blog&cmd=details&id=38#a6[What is Trusted Boot Auto-Logon (TBAL)?]]
+The host is required to be actively kernel debugged for the function to succeed.
+
+```
+msv1_0 MsV1_0ProvisionTbal --luid {session id}
+```
+
+=== SetProcessOption
+
+Enable or disable an option for the calling process.
+`SeTcbPrivilege` is required.
+The currently known set of process options include:
+
+- `AllowBlankPassword`
+- `AllowOldPassword`
+- `DisableAdminLockout`
+- `DisableForceGuest`
+- `TryCacheFirst`
+
+MSV1_0 may internally check for one these options using `NtLmCheckProcessOption`.
+
+```
+msv1_0 MsV1_0SetProcessOption --option {process option} [--disable]
+```
+
+=== SetThreadOption
+
+Enable or disable an option for the calling thread.
+The set of options are the same as with the `SetProcessOption` command but they will take precedence over process options.
+`SeTcbPrivilege` is required.
+
+```
+msv1_0 MsV1_0SetThreadOption --option {thread option} [--disable]
+```
+
+=== TransferCred
+
+Copy the primary credentials (LM, NT, SHA OWFs, and Cred Key) from one msv1_0 logon session to another logon session.
+The copying is done by retrieving the primary credentials of the source logon session then calling `SspAcceptCredentials` with the `PRIMARY_CRED_UPDATE` flag set and the necessary input data to update the destination logon session with the retrieved credentials.
+The function will ignore the all standard flags for a transfer credentials call (ex. `--cleanup-credentials`).
+The command is restricted to only being callable by LSASS itself and as such is outside the scope of LSA Whisperer.
+
+=== ValidateAuth
+
+The command is restricted to only being callable by LSASS itself and as such is outside the scope of LSA Whisperer.
+
+== Sub-authentication Packages
+
+Msv1_0 supports registering custom sub-authentication packages for extra user validation for local logons.
+The only Micosoft developed sub-authentication package that could be identified was the "Microsoft IIS sub-authenticiation handler" implemented in the file `iissuba.dll`.
+The `iissuba.dll` package has not shipped with Windows for a long time - hence it has not been included in the LSA Whisperer project.
+
+== Key Terms
+
+Reverse engineering some terms were key in understanding the importance of some functions that msv1_0 provides.
+A description for each of these terms is provided here for others to use and research further.
+These may not be completely accurate and contributions are appreciated.
+
+=== Credential Key
+
+In regards to the Data Protection API (DPAPI), Microsoft refers to an OWF hash of a user's password as a credential key or cred key for short.
+Microsoft previously referred to these hashes as "OWF passwords" or "user credentials", but they have now formalized the term "credential key" in NT 6.2 with the introduction of the `GetCredentialKey` command.
+The purpose of the credential key is to be combined with a user's SID to derive a master key (MK) encryption key which may be used to decrypt a user's master key file.
+
+There are multiple OWF hashes, but only the NT OWF, SHA OWF, or secure cred key hash may be used as a cred key.
+The cred key for a local user was originally the NT OWF hash, but is now the SHA OWF hash because the NT OWF hash could be recovered from the SAM.
+The cred key for domain users will be the secure cred key hash or the NT OWF hash for hosts older than NT 10 1604.
+
+=== Credential Key Identifier
+
+Microsoft will derive another value from a cred key for logging purposes which it calls the cred key identifier.
+The Cred Key identifier is generated by msv1_0 and may be seen in logs such as event Id 12289 from the Microsoft-Windows-Crypto-DPAPI provider.
+Code for deriving a cred key identifier is provided below.
+
+[source,c++]
+----
+// Input data must be 0x14 bytes and will be the SHA OWF hash for a LocalUserCredKey
+// or a null padded Cred Key, which are 0x10 bytes, for all other account types
+std::string CredKeyId(BYTE* data, PSID sid) {
+    std::string output;
+    BCRYPT_KEY_HANDLE key;
+    if (!BCryptGenerateSymmetricKey(BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE, &key, nullptr, 0, data, 0x14, 0)) {
+        std::string label{ "DPAPICredKeyLogging" };
+        std::wstring algorithm{ BCRYPT_SHA256_ALGORITHM };
+        BCryptBuffer cryptBuffers[] = {
+            {
+                static_cast<ULONG>(label.size() + 1), // 0x14
+                KDF_LABEL,
+                const_cast<char*>(label.data()),
+            }, {
+                GetLengthSid(sid),
+                KDF_CONTEXT,
+                sid,
+            }, {
+                static_cast<ULONG>((algorithm.size() + 1) * sizeof(wchar_t)), // 0xe
+                KDF_HASH_ALGORITHM,
+                const_cast<wchar_t*>(algorithm.data()),
+            }
+        };
+        BCryptBufferDesc parameterList;
+        parameterList.ulVersion = 0;
+        parameterList.cBuffers = 3;
+        parameterList.pBuffers = cryptBuffers;
+        UCHAR credKey[0x20];
+        DWORD copiedBytes{ 0 };
+        if (!BCryptKeyDerivation(key, &parameterList, credKey, 0x20, &copiedBytes, 0)) {
+            output = std::string(reinterpret_cast<char*>(credKey), copiedBytes);
+        }
+        BCryptDestroyKey(key);
+    }
+    return output;
+}
+----
+
+=== Master Key Encryption Key
+
+The master key encryption key or MK encryption key for short is the https://en.wikipedia.org/wiki/HMAC[SHA1 HMAC] of a user's OWF hash and account SID.
+The MK encryption key may be used with the https://datatracker.ietf.org/doc/html/rfc2898[PKCS #5] and PBKDF2 parameters in a master key file to derive what Microsoft calls the "symmetric key."
+The symmetric key may be used to decrypt the encrypted portion of the same master key file.
+Since NT 5.0, LSA has acquired the MK encryption key using the `DeriveCredential` command which other software may use as well.
+
+=== Secure Credential Key
+
+Microsoft refers to the OWF hash used for domain accounts post NT 10 1607 as the "secure credential key" hash.
+The reason for a new term is that a secure credential key is generated differently than a normal Cred Key, as documented in different FOSS projects such as https://github.com/openwall/john/blob/4222aa48e282fdd608b4b54a7efadb834a999b42/run/DPAPImk2john.py#L545[John the Ripper].
+The purpose for the new OWF hash is likely to protect the credential key for a domain account from being cracked.

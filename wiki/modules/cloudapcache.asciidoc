@@ -1,0 +1,48 @@
+= CloudAPCache
+:toc: macro
+
+The `CloudAPCache` directory stores the cached credentials for every cloud-based user logon that has occured on a Windows host.
+These credentials include data for accessing network and cloud services (ex. a PRT or CloudTGT), the CloudAP credential key for the user (used for https://en.wikipedia.org/wiki/Data_Protection_API[DPAPI]), and any additional keys specific to the implementation of the CloudAP plugin that is used to facilitate logon requests for the user account.
+
+LSA Whisperer's `!cloudapcache` module supports online decryption of the `CloudAPCache` directory when logon credentials for a target user account are known (ex., a password or PIN).
+For offline decryption or information on bruteforce attacks, please refer to Rémi Jullian, Geoffrey Bertoli, and Théo Gordyjan's https://www.youtube.com/watch?v=F92L4ibglgQ[2024 Troopers presentation] and their corresponding https://github.com/synacktiv/CacheData_decrypt[CacheData_decrypt] project.
+
+toc::[]
+
+== Commands
+
+=== azuread
+
+Decrypt a `CacheData` file for an Entra ID or AD FS user account that previously logged onto the host.
+You must have permission to read the `CacheData` file.
+That may be achieved by running LSA Whisperer as SYSTEM or elevating to SYSTEM by running `!token elevate`.
+You must also have the password, CloudAP credential key, or PIN of the user account to decrypt the file.
+You must specify either the location of the `CacheData` file to decrypt or the SID of the target user which the command will use to locate their `CacheData` file.
+
+Currently, this command may only be used to decrypt `CacheData` files managed by the AzureAD (AAD) plugin for CloudAP.
+The format of `CacheData` files managed by the MicrosoftAccount plugin are the same, but the significance of different parts of those files appear to be different enough to cause the command to fail.
+Identifying and supporting these differences is planned.
+
+```
+!cloudapcache azuread [-h] {--cache-data <path> | --sid <sid>} [--cred-key <cred key>] [--password <password>] [--pin <pin>]
+```
+
+=== config
+
+Show information about the `CloudAPCache` directory for the current host.
+You must have permission to read the target directory.
+That may be achieved by running LSA Whisperer as SYSTEM or elevating to SYSTEM by running `!token elevate`.
+
+```
+!cloudapcache config [-h] [--cache <path>]
+```
+
+=== decrypt_popkey
+
+Decrypt a Proof of Possession (PoP) key that was recovered from a decrypted CacheData file.
+The PoP key must be for the current user and it must be Base64 encoded.
+Offline decryption may be performed with other tools such as https://github.com/GhostPack/SharpDPAPI[SharpDPAPI].
+
+```
+!cloudapcache decrypt_popkey [-h] --data <value>
+```

@@ -1,7 +1,9 @@
-﻿#include <cli.hpp>
+﻿// Copyright (C) 2025 Evan McBroom
+#include "cli.hpp"
+#include "commands.hpp"
 #include <clipp.h>
 #include <codecvt>
-#include <commands.hpp>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -9,9 +11,8 @@
 #include <magic_enum.hpp>
 #include <memory>
 #include <replxx.hxx>
+#include <spdlog/spdlog.h>
 #include <thread>
-#include <token.hpp>
-#include <wininet.h>
 
 namespace {
     // https://gist.github.com/EvanMcBroom/2a9bed888c2755153a9616aa7ae1f79a
@@ -26,7 +27,7 @@ namespace {
     }
 
     template<typename PackageCall>
-    auto CommandFactory(const std::shared_ptr<Lsa>& lsa, PackageCall packageCall) {
+    auto CommandFactory(const std::shared_ptr<Lsa::Api>& lsa, PackageCall packageCall) {
         return [lsa, packageCall](Cli& cli, const std::string& input) {
             // Tokenize the user's input
             std::istringstream inputStream{ input };
@@ -52,58 +53,9 @@ namespace {
         }
     }
 
-    void Nonce(Cli& cli, const std::string& args) {
-        auto internet{ InternetOpenW(L"", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0) };
-        if (internet) {
-            auto connection{ InternetConnectW(internet, L"login.microsoftonline.com", 443, nullptr, nullptr, INTERNET_SERVICE_HTTP, 0, 0) };
-            if (connection) {
-                DWORD flags{ INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_KEEP_CONNECTION | INTERNET_FLAG_NO_AUTO_REDIRECT | INTERNET_FLAG_NO_UI | INTERNET_FLAG_SECURE };
-                auto request{ HttpOpenRequestW(connection, L"POST", L"/common/oauth2/token", nullptr, nullptr, nullptr, flags, 0) };
-                if (request) {
-                    std::string body{ "grant_type=srv_challenge" };
-                    if (HttpSendRequestW(request, nullptr, 0, body.data(), body.length())) {
-                        DWORD status{ 0 };
-                        DWORD bufferLength{ sizeof(status) };
-                        if (HttpQueryInfoW(request, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &status, &bufferLength, 0)) {
-                            // A post response may not contain a content length header
-                            // So do not refer to it when reading all bytes from the body of the POST response
-                            size_t chunkSize{ 1024 };
-                            std::vector<std::vector<byte>> chunks;
-                            DWORD bytesRead{ 0 };
-                            size_t totalRead{ 0 };
-                            do {
-                                // On additional iterations of the loop, resize the previously recieved chunk is necessary
-                                if (chunks.size()) {
-                                    chunks.back().resize(bytesRead);
-                                }
-                                chunks.emplace_back(std::vector<byte>(chunkSize, 0));
-                                totalRead += bytesRead;
-                            } while (InternetReadFile(request, chunks.back().data(), chunkSize, &bytesRead) && bytesRead);
-                            if (totalRead) {
-                                // Using chunk size intervals when coalescing data to make the process easier to write
-                                std::vector<byte> buffer(chunks.size() * chunkSize, 0);
-                                size_t bytesCopied{ 0 };
-                                for (size_t index{ 0 }; index < chunks.size(); index++) {
-                                    auto& chunk{ chunks[index] };
-                                    std::memcpy(buffer.data() + bytesCopied, chunk.data(), chunk.size());
-                                    bytesCopied += chunk.size();
-                                }
-                                std::wstring response{ buffer.data(), buffer.data() + buffer.size() };
-                                std::wcout << response << std::endl;
-                            }
-                        }
-                    }
-                    InternetCloseHandle(request);
-                }
-                InternetCloseHandle(connection);
-            }
-            InternetCloseHandle(internet);
-        }
-    }
-
-    template<typename ProtocolMessageType>
+    template<typename Enum>
     std::vector<std::string> SubCommands() {
-        auto names{ magic_enum::enum_names<ProtocolMessageType>() };
+        auto names{ magic_enum::enum_names<Enum>() };
         return std::vector<std::string>{ names.begin(), names.end() };
     }
 }
@@ -112,11 +64,15 @@ int main(int argc, char** argv) {
     bool noHistory{ false };
     bool showHelp{ false };
     std::string historyFile{ "./.lsa_history.txt" };
+    WCHAR applicationPath[MAX_PATH] = { 0 };
+    GetModuleFileNameW(nullptr, applicationPath, MAX_PATH);
+    std::string moduleDir{ (std::filesystem::path(applicationPath).parent_path() / "modules").string() };
     std::vector<std::string> commands;
     // clang-format off
     auto args = (
         clipp::option("-h", "--help").set(showHelp).doc("Show this help message."),
         clipp::option("--history-file").doc("Specify an alternative command line history file.") & clipp::value("path", historyFile),
+        clipp::option("--module-dir").doc("Specify an alternative module directory.") & clipp::value("dir", moduleDir),
         clipp::option("--no-history").set(noHistory).doc("Do not create a command line history file."),
         clipp::opt_values("command", commands)
     );
@@ -129,7 +85,8 @@ int main(int argc, char** argv) {
     if (noHistory) {
         historyFile.clear();
     }
-    auto lsa{ std::make_shared<Lsa>(std::cout) };
+    spdlog::set_pattern("[%^%l%$] %v");
+    auto lsa{ std::make_shared<Lsa::Api>(std::cout) };
     if (!commands.empty()) {
         // Process each commands
         for (auto& command : commands) {
@@ -148,7 +105,7 @@ int main(int argc, char** argv) {
             case Hash("kerberos"): Kerberos::Call(lsa, argv); break;
             case Hash("live"): Live::Call(lsa, argv); break;
             case Hash("msv1_0"): Msv1_0::Call(lsa, argv); break;
-            case Hash("negoexts"): Negoexts::Call(lsa, argv); break;
+            case Hash("negoexts"): NegoExts::Call(lsa, argv); break;
             case Hash("negotiate"): Negotiate::Call(lsa, argv); break;
             case Hash("pku2u"): Pku2u::Call(lsa, argv); break;
             case Hash("schannel"): Schannel::Call(lsa, argv); break;
@@ -166,14 +123,25 @@ int main(int argc, char** argv) {
         });
         cli.AddCommand(".help", Help);
         cli.AddCommand(".history", History);
-        cli.AddCommand(".nonce", Nonce);
-        cli.AddCommand(".token", Token::Command);
+        cli.AddCommand(".log_level", [](Cli& cli, const std::string& args) {
+            if (args.find(' ') == std::string::npos) {
+                std::cout << "Log level: " << magic_enum::enum_name<spdlog::level::level_enum>(spdlog::get_level()) << std::endl;
+            } else {
+                try {
+                    auto levelName{ args.substr(args.find(' ') + 1) };
+                    spdlog::set_level(magic_enum::enum_cast<spdlog::level::level_enum>(levelName).value());
+                } catch (...) {
+                    spdlog::error("Please specify a valid log level.");
+                }
+            }
+        });
+        cli.AddSubCommandCompletions(".log_level", SubCommands<spdlog::level::level_enum>());
         cli.AddCommand("all", CommandFactory(lsa, AllPackages::Call));
         cli.AddCommand("cloudap", CommandFactory(lsa, Cloudap::Call));
         cli.AddCommand("kerberos", CommandFactory(lsa, Kerberos::Call));
         cli.AddCommand("live", CommandFactory(lsa, Live::Call));
         cli.AddCommand("msv1_0", CommandFactory(lsa, Msv1_0::Call));
-        cli.AddCommand("negoexts", CommandFactory(lsa, Negoexts::Call));
+        cli.AddCommand("negoexts", CommandFactory(lsa, NegoExts::Call));
         cli.AddCommand("negotiate", CommandFactory(lsa, Negotiate::Call));
         cli.AddCommand("pku2u", CommandFactory(lsa, Pku2u::Call));
         cli.AddCommand("schannel", CommandFactory(lsa, Schannel::Call));
@@ -182,24 +150,35 @@ int main(int argc, char** argv) {
         cli.AddExitCommand(".quit");
         // Add autocompletions for each command's subcommands
         cli.AddSubCommandCompletions("all", SubCommands<AllPackages::PROTOCOL_MESSAGE_TYPE>());
-        // Cloudap's subcommands are also handled directly to add the plugin commands for AAD
-        auto cloudapPluginFunctions{ magic_enum::enum_names<Cloudap::Aad::CALL>() };
+        // Cloudap's subcommands are also handled directly to add the plugin commands for AAD and MSA
+        auto cloudapAadMessages{ magic_enum::enum_names<Cloudap::Aad::CALL>() };
+        auto cloudapMsaMessages{ magic_enum::enum_names<Cloudap::Msa::CALL>() };
         auto cloudapMessages(magic_enum::enum_names<Cloudap::PROTOCOL_MESSAGE_TYPE>());
         std::vector<std::string> cloudapSubCommands{ cloudapMessages.begin(), cloudapMessages.end() };
-        cloudapSubCommands.insert(cloudapSubCommands.end(), cloudapPluginFunctions.begin(), cloudapPluginFunctions.end());
+        cloudapSubCommands.insert(cloudapSubCommands.end(), cloudapAadMessages.begin(), cloudapAadMessages.end());
+        cloudapSubCommands.insert(cloudapSubCommands.end(), cloudapMsaMessages.begin(), cloudapMsaMessages.end());
         cloudapSubCommands.erase(std::remove(cloudapSubCommands.begin(), cloudapSubCommands.end(), "CreateBindingKey"), cloudapSubCommands.end());
         cloudapSubCommands.erase(std::remove(cloudapSubCommands.begin(), cloudapSubCommands.end(), "GenerateBindingClaims"), cloudapSubCommands.end());
         cli.AddSubCommandCompletions("cloudap", cloudapSubCommands);
         cli.AddSubCommandCompletions("kerberos", SubCommands<Kerberos::PROTOCOL_MESSAGE_TYPE>());
         cli.AddSubCommandCompletions("live", SubCommands<Live::PROTOCOL_MESSAGE_TYPE>());
         cli.AddSubCommandCompletions("msv1_0", SubCommands<Msv1_0::PROTOCOL_MESSAGE_TYPE>());
-        cli.AddSubCommandCompletions("negoexts", SubCommands<Negoexts::PROTOCOL_MESSAGE_TYPE>());
-        cli.AddSubCommandCompletions("negotiate", SubCommands<Negotiate::PROTOCOL_MESSAGE_TYPE>());
+        cli.AddSubCommandCompletions("negoexts", SubCommands<NegoExts::MESSAGE_TYPE>());
+        auto negotiateMessages(magic_enum::enum_names<NEGOTIATE_MESSAGES>());
+        std::vector<std::string> negotiateCommands{ negotiateMessages.begin(), negotiateMessages.end() };
+        negotiateCommands.erase(std::remove(negotiateCommands.begin(), negotiateCommands.end(), "NegCallPackageMax"), negotiateCommands.end());
+        cli.AddSubCommandCompletions("negotiate", negotiateCommands);
         cli.AddSubCommandCompletions("pku2u", SubCommands<Pku2u::PROTOCOL_MESSAGE_TYPE>());
         cli.AddSubCommandCompletions("schannel", SubCommands<Schannel::PROTOCOL_MESSAGE_TYPE>());
         cli.AddSubCommandCompletions("spm", SubCommands<SpmApi::NUMBER>());
-        cli.AddSubCommandCompletions(".token", SubCommands<Token::SubCommands>());
-
+        if (!moduleDir.empty() && std::filesystem::exists(moduleDir) && std::filesystem::is_directory(moduleDir)) {
+            for (auto const& entry : std::filesystem::directory_iterator{ moduleDir, std::filesystem::directory_options::skip_permission_denied }) {
+                auto ex = entry.path().extension();
+                if (!entry.path().extension().compare(".dll")) {
+                    cli.AddModule(entry.path().wstring());
+                }
+            }
+        }
         cli.Start();
     }
     return 0;
